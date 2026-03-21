@@ -98,4 +98,20 @@ jobs:
               cd /opt/idea-code
             fi
             docker compose -f services/docker-compose.yml up -d --build
+
+            # Wait for services to be healthy
+            sleep 15
+
+            # Seed databases (skips existing records, safe to run on every deploy)
+            docker cp services/auth_service/seed.py services-auth_service-1:/app/seed.py
+            docker exec services-auth_service-1 python seed.py
+
+            docker cp services/content_service/seed.py services-content_service-1:/app/seed.py
+            docker exec services-content_service-1 python seed.py
+
+            docker cp services/community_service/seed.py services-community_service-1:/app/seed.py
+            docker exec services-community_service-1 python seed.py
+
+            docker cp services/chat_service/seed.py services-chat_service-1:/app/seed.py
+            docker exec services-chat_service-1 python seed.py
           ENDSSH
