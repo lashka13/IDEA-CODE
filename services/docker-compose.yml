@@ -3,11 +3,11 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_MULTIPLE_DATABASES: auth_db,content_db,community_db,transaction_db,notification_db,chat_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_MULTIPLE_DATABASES: auth_db,content_db,community_db,transaction_db,notification_db,chat_db,search_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
@@ -36,6 +36,11 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     volumes:
       - zkdata:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -79,16 +84,24 @@ services:
       - transaction_service
       - notification_service
       - chat_service
+      - search_service
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ── Microservices ───────────────────────────────────────────
   auth_service:
     build: ./auth_service
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/auth_db
-      SECRET_KEY: super-secret-key-change-in-production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/auth_db
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +109,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
     volumes:
       - uploads:/app/uploads
@@ -103,11 +121,13 @@ services:
   content_service:
     build: ./content_service
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/content_db
-      SECRET_KEY: super-secret-key-change-in-production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/content_db
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/1
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       AUTH_SERVICE_URL: http://auth_service:8000
+      SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,15 +135,21 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   community_service:
     build: ./community_service
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/community_db
-      SECRET_KEY: super-secret-key-change-in-production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/community_db
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/2
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
@@ -131,15 +157,21 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   transaction_service:
     build: ./transaction_service
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/transaction_db
-      SECRET_KEY: super-secret-key-change-in-production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/transaction_db
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/3
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       AUTH_SERVICE_URL: http://auth_service:8000
     depends_on:
       postgres:
@@ -148,15 +180,21 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   notification_service:
     build: ./notification_service
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/notification_db
-      SECRET_KEY: super-secret-key-change-in-production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/notification_db
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/4
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
@@ -164,15 +202,21 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   chat_service:
     build: ./chat_service
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/chat_db
-      SECRET_KEY: super-secret-key-change-in-production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/chat_db
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/5
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
@@ -180,6 +224,45 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  search_service:
+    build: ./search_service
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/search_db
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
+      CONTENT_SERVICE_URL: http://content_service:8000
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth_service:8000}
+      SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      EMBEDDING_MODEL: openai/text-embedding-3-small
+      LLM_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      auth_service:
+        condition: service_healthy
+      content_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - search_data:/app/chroma_data
     restart: unless-stopped
 
 volumes:
@@ -188,3 +271,4 @@ volumes:
   zkdata:
   kafkadata:
   uploads:
+  search_data:

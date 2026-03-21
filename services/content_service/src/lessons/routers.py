@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.db import get_db
@@ -8,8 +8,10 @@ from src.materials.models import Material
 from src.lessons.models import Lesson
 from src.lessons.schemas import LessonCreate, LessonResponse
 from src.purchases.models import Purchase
+from src.conf import get_settings
 
 router = APIRouter(prefix="/materials/{material_id}/lessons", tags=["lessons"])
+settings = get_settings()
 
 
 @router.get("/", response_model=list[LessonResponse])
@@ -17,6 +19,7 @@ async def get_lessons(
     material_id: str,
     user_id: str | None = Depends(get_optional_user_id),
     db: AsyncSession = Depends(get_db),
+    x_search_index: str | None = Header(None, alias="X-Search-Index"),
 ):
     mat_result = await db.execute(select(Material).where(Material.id == material_id))
     material = mat_result.scalar_one_or_none()
@@ -29,7 +32,9 @@ async def get_lessons(
     lessons = result.scalars().all()
 
     has_access = False
-    if user_id:
+    if settings.SEARCH_INDEX_SECRET and x_search_index == settings.SEARCH_INDEX_SECRET:
+        has_access = True
+    elif user_id:
         if material.author_id == user_id:
             has_access = True
         else:
@@ -56,7 +61,9 @@ async def get_lessons(
 
 @router.post("/", response_model=LessonResponse, status_code=201)
 async def create_lesson(
-    material_id: str, data: LessonCreate,
+    material_id: str,
+    data: LessonCreate,
+    request: Request,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -75,4 +82,8 @@ async def create_lesson(
     db.add(lesson)
     await db.commit()
     await db.refresh(lesson)
+
+    kafka_producer = request.app.state.kafka_producer
+    await kafka_producer.send_and_wait("material.updated", {"material_id": material_id})
+
     return LessonResponse.model_validate(lesson)

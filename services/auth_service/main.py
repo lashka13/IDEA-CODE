@@ -43,11 +43,16 @@ async def lifespan(app: FastAPI):
     await app.state.redis.close()
 
 
-app = FastAPI(title="Auth Service", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Auth Service",
+    version="1.0.0",
+    lifespan=lifespan,
+    redirect_slashes=False,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

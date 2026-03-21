@@ -1,6 +1,7 @@
 export const ROUTES = {
   HOME: '/',
   CATALOG: '/catalog',
+  SMART_SEARCH: '/smart-search',
   MATERIAL: '/catalog/:id',
   COURSE_VIEWER: '/catalog/:id/learn',
   ADD_MATERIAL: '/add-material',

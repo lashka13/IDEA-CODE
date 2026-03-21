@@ -1,6 +1,5 @@
 import { createSlice, createSelector, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { type Transaction } from '../../../shared/types';
-import { mockTransactions } from '../../../shared/api/mocks';
 import { apiClient } from '../../../shared/api/client';
 
 function mapTransaction(data: any): Transaction {
@@ -30,11 +29,13 @@ export const fetchTransactions = createAsyncThunk(
 interface TransactionsState {
   items: Transaction[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: TransactionsState = {
-  items: mockTransactions,
+  items: [],
   loading: false,
+  error: null,
 };
 
 export const transactionsSlice = createSlice({
@@ -47,12 +48,16 @@ export const transactionsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchTransactions.pending, (state) => { state.loading = true; })
+      .addCase(fetchTransactions.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchTransactions.fulfilled, (state, action) => {
         state.items = action.payload;
         state.loading = false;
+        state.error = null;
       })
-      .addCase(fetchTransactions.rejected, (state) => { state.loading = false; });
+      .addCase(fetchTransactions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || 'Failed to fetch transactions';
+      });
   },
 });
 

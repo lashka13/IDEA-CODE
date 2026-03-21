@@ -148,8 +148,18 @@ async def upload_file(
 
 
 # ── Internal API (for other services) ─────────────────────
+def _verify_service_token(request: Request):
+    """Verify service-to-service token from X-Service-Token header."""
+    expected = settings.INTERNAL_SERVICE_TOKEN
+    if expected:
+        token = request.headers.get("X-Service-Token", "")
+        if token != expected:
+            raise HTTPException(status_code=403, detail="Invalid service token")
+
+
 @router.get("/internal/users/{user_id}", response_model=UserResponse)
-async def internal_get_user(user_id: str, db: AsyncSession = Depends(get_db)):
+async def internal_get_user(user_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    _verify_service_token(request)
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -159,8 +169,9 @@ async def internal_get_user(user_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/internal/users/{user_id}/deduct-coins")
 async def internal_deduct_coins(
-    user_id: str, data: CoinsOperation, db: AsyncSession = Depends(get_db),
+    user_id: str, request: Request, data: CoinsOperation, db: AsyncSession = Depends(get_db),
 ):
+    _verify_service_token(request)
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -175,8 +186,9 @@ async def internal_deduct_coins(
 
 @router.post("/internal/users/{user_id}/add-coins")
 async def internal_add_coins(
-    user_id: str, data: CoinsOperation, db: AsyncSession = Depends(get_db),
+    user_id: str, request: Request, data: CoinsOperation, db: AsyncSession = Depends(get_db),
 ):
+    _verify_service_token(request)
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:

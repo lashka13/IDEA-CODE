@@ -46,7 +46,18 @@ api/               FastAPI backend
 
 ## Запуск
 
-### Backend
+### Микросервисы (актуально: Smart Search, RAG, материалы)
+
+```bash
+cd services
+docker compose up -d --build   # шлюз nginx на http://localhost:8000
+```
+
+Фронт в dev (`npm run dev` → :5173): в `frontend/.env.development` задано `VITE_API_BASE=http://localhost:8000/api`, чтобы логин шёл в шлюз. **Не** поднимайте один сервис (например только search) на порт 8000 — нужен **nginx** из `services/docker-compose.yml`.
+
+Если видите `404` на `/api/auth/login` — проверьте, что шлюз запущен и в `VITE_API_BASE` есть суффикс **`/api`**.
+
+### Backend (монолит `api/`, другой compose)
 
 ```bash
 cd api
@@ -68,7 +79,7 @@ npm install
 npm run dev                 # http://localhost:5173
 ```
 
-Vite проксирует `/api` на `localhost:8001`.
+Для монолита Vite проксирует `/api` на `localhost:8001`. Для микросервисов см. `VITE_API_BASE` выше.
 
 ## Тестовые аккаунты
 

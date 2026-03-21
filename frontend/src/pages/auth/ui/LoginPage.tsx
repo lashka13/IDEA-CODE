@@ -7,7 +7,8 @@ import { testUsers } from '../../../shared/api/mocks';
 import { PageTransition, GlassCard, GradientMesh, CodeCoinIcon, Badge } from '../../../shared/ui';
 import { useEffect, useState } from 'react';
 
-const DEFAULT_PASSWORD = 'password123';
+const IS_DEV = import.meta.env.DEV;
+const DEFAULT_PASSWORD = IS_DEV ? 'password123' : '';
 
 export default function LoginPage() {
   const dispatch = useAppDispatch();

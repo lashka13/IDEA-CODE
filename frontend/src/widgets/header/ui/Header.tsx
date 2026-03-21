@@ -187,6 +187,7 @@ export function Header() {
 
   const navItems = [
     { path: '/catalog', label: 'Каталог' },
+    { path: '/smart-search', label: 'Smart Search' },
     { path: '/communities', label: 'Сообщества' },
     { path: '/chat', label: 'Чат' },
     { path: '/tasks', label: 'Задачи' },

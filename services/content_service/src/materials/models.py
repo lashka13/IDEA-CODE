@@ -12,6 +12,8 @@ class Material(Base):
     description: Mapped[str] = mapped_column(String(2000))
     author_id: Mapped[str] = mapped_column(String)
     cover_url: Mapped[str] = mapped_column(String(500), default="")
+    # Relative URL e.g. /uploads/xxx.pdf (auth_service); used by search_service for RAG.
+    pdf_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     price: Mapped[int] = mapped_column(Integer, default=0)
     rating: Mapped[float] = mapped_column(Float, default=0.0)
     rating_count: Mapped[int] = mapped_column(Integer, default=0)

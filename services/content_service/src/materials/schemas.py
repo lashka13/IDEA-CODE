@@ -15,6 +15,7 @@ class MaterialCreate(BaseModel):
     tags: list[str] = []
     table_of_contents: list[str] = []
     community_id: str | None = None
+    pdf_url: str | None = None
 
 
 class MaterialUpdate(BaseModel):
@@ -24,6 +25,7 @@ class MaterialUpdate(BaseModel):
     price: int | None = None
     tags: list[str] | None = None
     table_of_contents: list[str] | None = None
+    pdf_url: str | None = None
 
 
 class MaterialResponse(BaseModel):
@@ -44,6 +46,7 @@ class MaterialResponse(BaseModel):
     tags: list[str]
     table_of_contents: list[str]
     community_id: str | None = None
+    pdf_url: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

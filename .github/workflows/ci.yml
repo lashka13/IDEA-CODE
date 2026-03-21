@@ -71,6 +71,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build search_service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/search_service
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -100,8 +108,16 @@ jobs:
             docker compose -f services/docker-compose.yml up -d --build
             docker compose -f services/docker-compose.yml up -d --force-recreate nginx
 
-            # Wait for services to be healthy
-            sleep 15
+            # Wait for services to be healthy (poll instead of sleep)
+            echo "Waiting for services to be ready..."
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+                echo "Gateway is healthy!"
+                break
+              fi
+              echo "Attempt $i/30: waiting..."
+              sleep 2
+            done
 
             # Seed databases (skips existing records, safe to run on every deploy)
             # Auth service seeds

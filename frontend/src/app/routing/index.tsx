@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import { Skeleton } from '../../shared/ui';
@@ -21,7 +21,9 @@ const WalletPage = lazy(() => import('../../pages/wallet'));
 const LoginPage = lazy(() => import('../../pages/auth'));
 const NotificationsPage = lazy(() => import('../../pages/notifications'));
 const ProfileEditPage = lazy(() => import('../../pages/profile-edit'));
+const SmartSearchPage = lazy(() => import('../../pages/smart-search'));
 const NotFoundPage = lazy(() => import('../../pages/not-found'));
+const AISearchPage = lazy(() => import('../../pages/ai-search'));
 
 function PageLoader() {
   return (
@@ -60,7 +62,11 @@ export function AppRouter() {
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/smart-search" element={<SmartSearchPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/ai-search" element={<AISearchPage />} />
+          {/* Часто ожидают /auth вместо /login — без этого показывается 404 Not Found */}
+          <Route path="/auth" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

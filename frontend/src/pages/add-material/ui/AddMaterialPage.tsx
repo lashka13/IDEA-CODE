@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -507,6 +507,10 @@ export default function AddMaterialPage() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  /** Optional PDF for RAG (uploaded on submit to auth_service, pdf_url on material). */
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   if (!isAuth) {
     return (
@@ -568,10 +572,38 @@ export default function AddMaterialPage() {
     setCoverPreview(covers[Math.floor(Math.random() * covers.length)]);
   };
 
+  const handlePdfPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    setPdfError(null);
+    if (!f) return;
+    if (f.type !== 'application/pdf') {
+      setPdfError('Нужен файл PDF');
+      return;
+    }
+    if (f.size > 10 * 1024 * 1024) {
+      setPdfError('Максимум 10 МБ');
+      return;
+    }
+    setPdfFile(f);
+  };
+
   const handleSubmit = async () => {
     if (!canPublish) return;
     setIsSubmitting(true);
+    setPdfError(null);
     try {
+      let pdfUrl: string | undefined;
+      if (pdfFile) {
+        try {
+          const up = await apiClient.uploadFile(pdfFile);
+          pdfUrl = up.url as string;
+        } catch {
+          setPdfError('Не удалось загрузить PDF. Попробуйте ещё раз.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const material = await apiClient.createMaterial({
         title,
         description,
@@ -584,6 +616,7 @@ export default function AddMaterialPage() {
         cover_url: coverPreview || undefined,
         technology: tags,
         table_of_contents: lessons.map((l) => l.title),
+        pdf_url: pdfUrl,
       });
       // Create lessons sequentially
       for (let i = 0; i < lessons.length; i++) {
@@ -737,6 +770,48 @@ export default function AddMaterialPage() {
                     )}
                     <p className="text-[10px] text-white/20 ml-auto">{description.length}/500</p>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-white/40 mb-2">
+                    PDF для поиска и AI <span className="text-white/20">(необязательно)</span>
+                  </label>
+                  <p className="text-[11px] text-white/25 mb-2">
+                    Текст из PDF попадёт в Smart Search и RAG вместе с уроками. До 10 МБ.
+                  </p>
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handlePdfPick}
+                  />
+                  {pdfFile ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                      <FileText size={16} className="text-accent-cyan flex-shrink-0" />
+                      <span className="text-xs text-white/70 truncate flex-1">{pdfFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPdfFile(null);
+                          if (pdfInputRef.current) pdfInputRef.current.value = '';
+                        }}
+                        className="p-1 rounded-lg text-white/30 hover:text-red-400"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => pdfInputRef.current?.click()}
+                      className="w-full h-24 border-2 border-dashed border-white/[0.08] rounded-xl flex flex-col items-center justify-center gap-2 hover:border-accent-cyan/20 hover:bg-accent-cyan/[0.02] transition-all"
+                    >
+                      <Upload size={22} className="text-white/20" />
+                      <span className="text-xs text-white/30">Выбрать PDF</span>
+                    </button>
+                  )}
+                  {pdfError && <p className="text-[10px] text-red-400/80 mt-1">{pdfError}</p>}
                 </div>
 
                 <div>
@@ -940,7 +1015,7 @@ export default function AddMaterialPage() {
               </div>
             </Section>
 
-            {/* Section 3: Lessons */}
+            {/* Section 4: Lessons */}
             <Section
               title={`Уроки (${lessons.length})`}
               icon={<BookOpen size={16} />}

@@ -1,4 +1,42 @@
-const API_BASE = '/api';
+/**
+ * API root: relative `/api` (Vite proxy → gateway :8000) or absolute, e.g.
+ * `http://localhost:8000/api`. If you pass only `http://localhost:8000`, `/api` is appended.
+ */
+function getApiBase(): string {
+  const raw = import.meta.env.VITE_API_BASE?.trim();
+  if (!raw) return '/api';
+  let base = raw.replace(/\/$/, '');
+  // Avoid /auth/login → 404: full path must be .../api/auth/login
+  if (/^https?:\/\//i.test(base) && !/\/api$/i.test(base)) {
+    base = `${base}/api`;
+  }
+  return base;
+}
+
+const API_BASE = getApiBase();
+
+/** FastAPI returns `detail` as string, object, or array — normalize for UI. */
+function formatApiError(url: string, status: number, body: unknown): string {
+  const b = body as { detail?: unknown };
+  let msg = '';
+  if (b?.detail != null) {
+    if (typeof b.detail === 'string') {
+      msg = b.detail;
+    } else if (Array.isArray(b.detail)) {
+      msg = b.detail
+        .map((e: { msg?: string; loc?: unknown }) => (typeof e === 'object' && e && 'msg' in e ? (e as { msg: string }).msg : JSON.stringify(e)))
+        .join('; ');
+    } else {
+      msg = JSON.stringify(b.detail);
+    }
+  }
+  if (!msg) msg = `HTTP ${status}`;
+  if (status === 404) {
+    msg += ` [${url}] — Запрос не попал в auth_service. Откройте сайт через шлюз: http://localhost:8000 (docker compose из папки services/). ` +
+      'Do not map a single microservice (e.g. search_service) to port 8000; use the nginx gateway.';
+  }
+  return msg;
+}
 
 class ApiClient {
   private token: string | null = null;
@@ -30,14 +68,15 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(`${API_BASE}${path}`, {
+    const url = `${API_BASE}${path}`;
+    const response = await fetch(url, {
       ...options,
       headers,
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+      const errorBody = await response.json().catch(() => null);
+      throw new Error(formatApiError(url, response.status, errorBody));
     }
 
     if (response.status === 204) return undefined as T;
@@ -80,7 +119,7 @@ class ApiClient {
     return this.request<any>(`/users/${userId}`);
   }
 
-  async updateProfile(data: any) {
+  async updateProfile(data: { name?: string; bio?: string; avatar_url?: string; tech_stack?: string[]; skills?: Record<string, number> }) {
     return this.request<any>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -218,7 +257,6 @@ class ApiClient {
     return this.request<any>(`/notifications/${id}/read`, { method: 'POST' });
   }
 
-
   // Chat
   async getChannels() {
     return this.request<any[]>('/chat/channels/');
@@ -302,6 +340,29 @@ class ApiClient {
     });
     if (!response.ok) throw new Error('Upload failed');
     return response.json();
+  }
+
+  // Smart Search (microservices search_service)
+  async smartSearch(query: string, topK = 10) {
+    return this.request<{
+      query: string;
+      results: Array<{
+        chunk_id: string;
+        document_id: string;
+        document_title: string;
+        score: number;
+        snippet: string;
+        source_type: string;
+      }>;
+      total: number;
+    }>(`/search/?q=${encodeURIComponent(query)}&top_k=${topK}`);
+  }
+
+  async askAssistant(data: { query: string; document_ids: string[]; history?: Array<{ role: string; content: string }> }) {
+    return this.request<{ answer: string; sources: string[] }>('/search/assistant/ask', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // WebSocket

@@ -1,5 +1,6 @@
 import uuid
 import json
+import logging
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -11,6 +12,7 @@ from src.messages.models import ChatMessage, MessageReaction
 from src.messages.schemas import ChatMessageCreate, ChatMessageResponse, MessageReactionCreate
 from src.conf import get_settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
 settings = get_settings()
 
@@ -35,8 +37,8 @@ class ConnectionManager:
             for connection in self.active_connections[channel_id]:
                 try:
                     await connection.send_json(message)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to send message to WebSocket: {e}")
 
 
 manager = ConnectionManager()

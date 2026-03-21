@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     KAFKA_BOOTSTRAP_SERVERS: str = "kafka:29092"
     REDIS_URL: str = "redis://redis:6379/4"
+    CORS_ORIGINS: list[str] = ["*"]
 
     class Config:
         env_file = ".env"

@@ -15,6 +15,8 @@ export interface Material {
   taskType: TaskType;
   tags: string[];
   tableOfContents: string[];
+  /** Relative path e.g. /uploads/xxx.pdf for RAG / Smart Search */
+  pdfUrl?: string | null;
   communityId?: string;
   createdAt: string;
 }
