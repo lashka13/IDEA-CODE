@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     # AI Search & RAG settings
     OPENROUTER_API_KEY: str = ""
-    OPENROUTER_MODEL: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    OPENROUTER_MODEL: str = "nvidia/nemotron-3-nano-30b-a3b:free"
     CHROMA_DB_PATH: str = "./chroma_db"
     EMBEDDING_MODEL: str = "paraphrase-multilingual-MiniLM-L12-v2"
     # HuggingFace Inference API token — instant embeddings via API, no local download
