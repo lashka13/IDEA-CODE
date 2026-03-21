@@ -1,0 +1,14 @@
+import { type Post } from '../../types';
+
+export const mockPosts: Post[] = [
+  { id: 'post-1', communityId: 'comm-1', authorId: 'user-1', title: 'React 19 — что нового?', content: 'Разбираем новые фичи React 19: Actions, use() хук, улучшенный Suspense. Кто уже пробовал в проде?', likesCount: 34, commentsCount: 12, createdAt: '2026-03-15T10:00:00' },
+  { id: 'post-2', communityId: 'comm-1', authorId: 'user-6', title: 'CSS Container Queries на практике', content: 'Наконец-то поддержка во всех браузерах! Показываю реальные кейсы использования container queries вместо media queries.', likesCount: 28, commentsCount: 8, createdAt: '2026-03-14T14:00:00' },
+  { id: 'post-3', communityId: 'comm-2', authorId: 'user-7', title: 'Spring Boot 4 vs Quarkus', content: 'Сравниваю производительность, время старта и DX обоих фреймворков. Результаты могут удивить.', likesCount: 41, commentsCount: 23, createdAt: '2026-03-13T09:00:00' },
+  { id: 'post-4', communityId: 'comm-3', authorId: 'user-3', title: 'Terraform vs Pulumi: что выбрать?', content: 'IaC в 2026: HCL или TypeScript? Делюсь опытом миграции большого проекта с Terraform на Pulumi.', likesCount: 52, commentsCount: 19, createdAt: '2026-03-12T16:00:00' },
+  { id: 'post-5', communityId: 'comm-4', authorId: 'user-2', title: 'LLM Fine-tuning для студенческих задач', content: 'Файн-тюним небольшую модель для автоматической проверки лабораторных. Датасет + код прилагаются.', likesCount: 67, commentsCount: 31, createdAt: '2026-03-11T11:00:00' },
+  { id: 'post-6', communityId: 'comm-5', authorId: 'user-5', title: 'Writeup: HackTheBox — новая машина', content: 'Разбираем свежую машину на HTB. Privilege escalation через misconfigured sudo. Без спойлеров в заголовке 😉', likesCount: 23, commentsCount: 7, createdAt: '2026-03-10T20:00:00' },
+  { id: 'post-7', communityId: 'comm-6', authorId: 'user-4', title: 'Kotlin Multiplatform — будущее?', content: 'KMP позволяет шарить бизнес-логику между iOS, Android, Web и Desktop. Мой опыт за 3 месяца использования.', likesCount: 19, commentsCount: 6, createdAt: '2026-03-09T13:00:00' },
+  { id: 'post-8', communityId: 'comm-7', authorId: 'user-8', title: 'Godot 4.3 — наконец стабильный?', content: 'Обзор новой версии Godot. Улучшения рендеринга, новый тайлмап, и стоит ли мигрировать с Unity.', likesCount: 15, commentsCount: 9, createdAt: '2026-03-08T15:00:00' },
+  { id: 'post-9', communityId: 'comm-1', authorId: 'user-1', title: 'Челлендж: Лучший UI за 48 часов', content: '🏆 Запускаем недельный челлендж! Создайте лендинг для вымышленного стартапа. Приз: 200 CodeCoins. Дедлайн — воскресенье.', likesCount: 45, commentsCount: 16, createdAt: '2026-03-07T10:00:00' },
+  { id: 'post-10', communityId: 'comm-3', authorId: 'user-3', title: 'Docker tips & tricks', content: 'Собрал 10 неочевидных лайфхаков для работы с Docker: multi-stage builds, caching, health checks и прочее.', likesCount: 38, commentsCount: 11, createdAt: '2026-03-06T17:00:00' },
+];
