@@ -1,0 +1,8 @@
+{
+  "service": "transaction_service",
+  "kafka": {
+    "produces": ["achievement.unlocked"],
+    "consumes": ["user.registered", "material.purchased"]
+  },
+  "depends_on": ["auth_service"]
+}

@@ -87,6 +87,7 @@ export default function ChatPage() {
           emoji: c.emoji || '💬',
           type: c.type || 'general',
           memberCount: c.member_count || 0,
+          lastActivity: c.last_activity || new Date().toISOString(),
         }));
         if (mapped.length > 0) {
           setChannels(mapped);
