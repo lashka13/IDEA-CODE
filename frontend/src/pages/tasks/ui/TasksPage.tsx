@@ -36,36 +36,71 @@ function CodeIDE({
   const [output, setOutput] = useState('');
   const [status, setStatus] = useState<SubmissionStatus>('idle');
   const [activeTestCase, setActiveTestCase] = useState(0);
+  const [language, setLanguage] = useState('python');
 
-  const handleRun = () => {
+  const handleRun = async () => {
     setStatus('running');
-    setOutput('');
-    setTimeout(() => {
-      const example = task.examples[activeTestCase];
-      if (example) {
-        setOutput(`Вход:\n${example.input}\n\nОжидаемый выход:\n${example.output}\n\n> Запуск на тестовом примере...`);
+    setOutput('Запускаем код...\n');
+    try {
+      const res = await apiClient.runCode(task.id, code, language, activeTestCase);
+      if (res.compile_error) {
+        setStatus('error');
+        setOutput(`❌ Ошибка компиляции:\n${res.compile_error}`);
+        return;
       }
-      setStatus('idle');
-    }, 1000);
+      if (res.stderr && res.exit_code !== 0) {
+        setStatus('error');
+        setOutput(`❌ Ошибка выполнения:\n${res.stderr}`);
+        return;
+      }
+      const lines = [
+        `Вход:\n${task.examples[activeTestCase]?.input || ''}`,
+        `\nВаш вывод:\n${res.stdout || '(пусто)'}`,
+        `\nОжидаемый вывод:\n${res.expected}`,
+        `\n${res.passed ? '✅ Тест пройден!' : '❌ Неверный ответ'}`,
+      ];
+      if (res.stderr) lines.push(`\nStderr:\n${res.stderr}`);
+      setOutput(lines.join('\n'));
+      setStatus(res.passed ? 'accepted' : 'wrong');
+    } catch (e: any) {
+      setStatus('error');
+      setOutput(`❌ Ошибка: ${e.message || 'Сервис выполнения кода недоступен'}`);
+    }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setStatus('running');
-    setOutput('Проверяем решение на тестах...\n');
-    setTimeout(() => {
-      const rand = Math.random();
-      if (rand > 0.4) {
-        setStatus('accepted');
-        setOutput(
-          `✅ Тест 1: Passed\n✅ Тест 2: Passed\n✅ Тест 3: Passed\n✅ Тест 4 (скрытый): Passed\n✅ Тест 5 (скрытый): Passed\n\n🎉 Все тесты пройдены!\nВремя: 42ms | Память: 12.3 MB`
-        );
-      } else {
-        setStatus('wrong');
-        setOutput(
-          `✅ Тест 1: Passed\n✅ Тест 2: Passed\n❌ Тест 3: Wrong Answer\n\nОжидалось: ${task.examples[0]?.output || '...'}\nПолучено: -1`
-        );
+    setOutput('Проверяем решение на всех тестах...\n');
+    try {
+      const res = await apiClient.submitCode(task.id, code, language);
+      const lines: string[] = [];
+      for (const r of res.results) {
+        const label = r.hidden ? `Тест ${r.test} (скрытый)` : `Тест ${r.test}`;
+        if (r.passed) {
+          lines.push(`✅ ${label}: Passed`);
+        } else {
+          lines.push(`❌ ${label}: Failed`);
+          if (r.stdout !== undefined && r.expected !== undefined) {
+            lines.push(`   Ожидалось: ${r.expected}`);
+            lines.push(`   Получено:  ${r.stdout}`);
+          }
+          if (r.stderr) {
+            lines.push(`   Ошибка: ${r.stderr}`);
+          }
+        }
       }
-    }, 2000);
+      lines.push('');
+      if (res.all_passed) {
+        lines.push(`🎉 Все тесты пройдены! (${res.passed_count}/${res.total})`);
+      } else {
+        lines.push(`Пройдено: ${res.passed_count}/${res.total}`);
+      }
+      setOutput(lines.join('\n'));
+      setStatus(res.all_passed ? 'accepted' : 'wrong');
+    } catch (e: any) {
+      setStatus('error');
+      setOutput(`❌ Ошибка: ${e.message || 'Сервис выполнения кода недоступен'}`);
+    }
   };
 
   return (
@@ -73,12 +108,16 @@ function CodeIDE({
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-surface-900/80 border-b border-white/[0.04]">
         <div className="flex items-center gap-2">
-          <select className="bg-surface-800 border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white/60 focus:outline-none [color-scheme:dark] appearance-none cursor-pointer hover:border-white/10 transition-colors">
-            <option value="python">Python 3.11</option>
-            <option value="javascript">JavaScript (Node 20)</option>
-            <option value="go">Go 1.21</option>
-            <option value="java">Java 21</option>
-            <option value="cpp">C++ 17</option>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-surface-800 border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-white/60 focus:outline-none [color-scheme:dark] appearance-none cursor-pointer hover:border-white/10 transition-colors"
+          >
+            <option value="python">Python 3</option>
+            <option value="javascript">JavaScript</option>
+            <option value="go">Go</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
           </select>
           <button
             onClick={() => setCode(getStarterCode(task))}
@@ -129,6 +168,7 @@ function CodeIDE({
             <div className="ml-auto flex items-center gap-1">
               {status === 'accepted' && <CheckCircle2 size={14} className="text-accent-green" />}
               {status === 'wrong' && <XCircle size={14} className="text-red-400" />}
+              {status === 'error' && <XCircle size={14} className="text-orange-400" />}
               {status === 'running' && <div className="w-3 h-3 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin" />}
             </div>
           </div>

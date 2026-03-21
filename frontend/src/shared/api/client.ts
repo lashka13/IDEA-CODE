@@ -297,6 +297,26 @@ class ApiClient {
     );
   }
 
+  async runCode(taskId: string, code: string, language: string, testIndex: number) {
+    return this.request<{
+      stdout: string; stderr: string; exit_code: number;
+      expected: string; passed: boolean; compile_error: string;
+    }>(
+      `/tasks/${taskId}/run`,
+      { method: 'POST', body: JSON.stringify({ code, language, test_index: testIndex }) },
+    );
+  }
+
+  async submitCode(taskId: string, code: string, language: string) {
+    return this.request<{
+      all_passed: boolean; total: number; passed_count: number;
+      results: { test: number; passed: boolean; hidden?: boolean; stdout?: string; expected?: string; stderr?: string }[];
+    }>(
+      `/tasks/${taskId}/submit`,
+      { method: 'POST', body: JSON.stringify({ code, language }) },
+    );
+  }
+
   // Challenges
   async getChallenges(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();

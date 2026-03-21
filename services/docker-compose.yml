@@ -64,6 +64,17 @@ services:
       timeout: 10s
       retries: 10
 
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    restart: unless-stopped
+    tmpfs:
+      - /piston/jobs:exec,size=256m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:2000/api/v2/runtimes || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Frontend ─────────────────────────────────────────────────
   frontend:
     build: ../frontend
@@ -128,12 +139,15 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       AUTH_SERVICE_URL: http://auth_service:8000
       SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
+      PISTON_URL: http://piston:2000
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      piston:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
