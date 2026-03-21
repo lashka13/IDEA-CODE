@@ -14,6 +14,7 @@ PROJECTS = [
     {
         "id": "proj-ecommerce",
         "title": "E-commerce магазин электроники",
+        "cover_url": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=400&fit=crop",
         "description": "Полноценный интернет-магазин с каталогом, корзиной, оплатой и панелью администратора. Реальный проект для портфолио.",
         "difficulty": "intermediate",
         "status": "recruiting",
@@ -37,6 +38,7 @@ PROJECTS = [
     {
         "id": "proj-learning",
         "title": "Платформа онлайн-обучения",
+        "cover_url": "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&h=400&fit=crop",
         "description": "LMS с курсами, видео-уроками, тестами, прогрессом студентов и сертификатами.",
         "difficulty": "advanced",
         "status": "in-progress",
@@ -62,6 +64,7 @@ PROJECTS = [
     {
         "id": "proj-fitness",
         "title": "Фитнес-трекер с ML",
+        "cover_url": "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800&h=400&fit=crop",
         "description": "Мобильное приложение для трекинга тренировок с ML-рекомендациями и аналитикой прогресса.",
         "difficulty": "advanced",
         "status": "recruiting",
@@ -85,6 +88,7 @@ PROJECTS = [
     {
         "id": "proj-chatbot",
         "title": "AI-чатбот поддержки",
+        "cover_url": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop",
         "description": "Умный чатбот для техподдержки на базе LLM с интеграцией в Telegram и веб.",
         "difficulty": "intermediate",
         "status": "review",
@@ -108,6 +112,7 @@ PROJECTS = [
     {
         "id": "proj-events",
         "title": "Агрегатор мероприятий кампуса",
+        "cover_url": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=400&fit=crop",
         "description": "Веб-приложение для поиска и регистрации на мероприятия: хакатоны, митапы, лекции.",
         "difficulty": "beginner",
         "status": "recruiting",
@@ -131,19 +136,36 @@ PROJECTS = [
 
 async def seed():
     engine = create_async_engine(DATABASE_URL)
+
+    # Add cover_url column if missing (create_all doesn't alter existing tables)
+    from sqlalchemy import text
+    async with engine.begin() as conn:
+        try:
+            await conn.execute(text("ALTER TABLE projects ADD COLUMN cover_url VARCHAR(500) DEFAULT ''"))
+            print("  added cover_url column")
+        except Exception:
+            pass  # column already exists
+
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
         created = 0
+        updated = 0
         for p in PROJECTS:
             r = await session.execute(select(Project).where(Project.id == p["id"]))
-            if r.scalar_one_or_none():
-                print(f"  skip  {p['title'][:40]}")
+            existing = r.scalar_one_or_none()
+            if existing:
+                if not existing.cover_url and p.get("cover_url"):
+                    existing.cover_url = p["cover_url"]
+                    print(f"  update {p['title'][:40]}")
+                    updated += 1
+                else:
+                    print(f"  skip  {p['title'][:40]}")
                 continue
             session.add(Project(**p))
             print(f"  create {p['title'][:40]}")
             created += 1
         await session.commit()
-        print(f"\nDone: {created} projects created")
+        print(f"\nDone: {created} created, {updated} updated")
     await engine.dispose()
 
 if __name__ == "__main__":

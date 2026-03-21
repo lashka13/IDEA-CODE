@@ -9,6 +9,7 @@ class Project(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     title: Mapped[str] = mapped_column(String(300))
+    cover_url: Mapped[str] = mapped_column(String(500), default="")
     description: Mapped[str] = mapped_column(String(2000))
     difficulty: Mapped[str] = mapped_column(String(20))  # beginner, intermediate, advanced
     status: Mapped[str] = mapped_column(String(20))  # recruiting, in-progress, review, completed

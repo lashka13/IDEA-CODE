@@ -272,7 +272,7 @@ export default function ChatPage() {
           <div className="flex-1 flex flex-col min-w-0 bg-surface-900/30">
             {!activeChannel ? (
               <div className="flex-1 flex items-center justify-center text-white/20 text-sm">
-                Загрузка каналов...
+                {!isAuth ? 'Войдите, чтобы участвовать в чатах' : channels.length === 0 ? 'Загрузка каналов...' : 'Выберите канал'}
               </div>
             ) : null}
             {/* Channel header */}
