@@ -1,0 +1,11 @@
+{
+  "service": "chat_service",
+  "kafka": {
+    "produces": [],
+    "consumes": []
+  },
+  "redis": {
+    "pub_sub": ["chat:{channel_id}"]
+  },
+  "depends_on": []
+}
