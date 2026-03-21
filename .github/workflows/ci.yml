@@ -97,7 +97,7 @@ jobs:
               git clone ${{ github.server_url }}/${{ github.repository }}.git /opt/idea-code
               cd /opt/idea-code
             fi
-            docker compose -f services/docker-compose.yml up -d --build
+            docker compose -f services/docker-compose.yml up -d --build --force-recreate
 
             # Wait for services to be healthy
             sleep 15
