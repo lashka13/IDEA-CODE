@@ -242,6 +242,52 @@ class ApiClient {
     });
   }
 
+  // Tasks
+  async getTasks(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<any[]>(`/tasks/?${query}`);
+  }
+
+  async getTask(id: string) {
+    return this.request<any>(`/tasks/${id}`);
+  }
+
+  // Challenges
+  async getChallenges(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<any[]>(`/challenges/?${query}`);
+  }
+
+  // Schedule
+  async getScheduleEvents(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<any[]>(`/schedule/?${query}`);
+  }
+
+  // Mentors
+  async getMentors() {
+    return this.request<any[]>('/mentors/');
+  }
+
+  async getMentor(id: string) {
+    return this.request<any>(`/mentors/${id}`);
+  }
+
+  // Projects
+  async getProjects(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<any[]>(`/projects/?${query}`);
+  }
+
+  async getProject(id: string) {
+    return this.request<any>(`/projects/${id}`);
+  }
+
+  // Roadmap
+  async getRoadmapTracks() {
+    return this.request<any[]>('/roadmap/');
+  }
+
   // Upload
   async uploadFile(file: File) {
     const formData = new FormData();

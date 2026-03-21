@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   ChevronRight,
@@ -20,10 +20,11 @@ import {
 } from 'lucide-react';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon } from '../../../shared/ui';
 import { cn, } from '../../../shared/lib';
-import { mockTasks, TASK_CATEGORIES, type Task, type TaskCategory, type TaskDifficulty } from '../../../shared/api/mocks/tasks';
-import { mockChallenges, type Challenge } from '../../../shared/api/mocks/challenges';
+import { TASK_CATEGORIES, type Task, type TaskCategory, type TaskDifficulty } from '../../../shared/api/mocks/tasks';
+import { type Challenge } from '../../../shared/api/mocks/challenges';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllUsers } from '../../../entities/user';
+import { apiClient } from '../../../shared/api/client';
 
 type SubmissionStatus = 'idle' | 'running' | 'accepted' | 'wrong' | 'error';
 
@@ -421,8 +422,62 @@ export default function TasksPage() {
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | 'all'>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<TaskDifficulty | 'all'>('all');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
 
-  const filteredTasks = mockTasks.filter((t) => {
+  useEffect(() => {
+    apiClient.getTasks().then((data: any[]) => {
+      const mapped: Task[] = data.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        difficulty: t.difficulty,
+        category: t.category,
+        topic: t.topic,
+        isTheory: t.is_theory,
+        inputFormat: t.input_format,
+        outputFormat: t.output_format,
+        constraints: t.constraints,
+        examples: t.examples,
+        hiddenTests: t.hidden_tests,
+        timeLimit: t.time_limit_ms,
+        memoryLimit: t.memory_limit_mb,
+        solvedCount: t.solved_count,
+        totalAttempts: t.total_attempts ?? 0,
+        acceptanceRate: t.acceptance_rate,
+        tags: t.tags,
+        hints: t.hints,
+        options: t.options,
+        correctOptionId: t.correct_option_id,
+        explanation: t.explanation,
+      }));
+      setTasks(mapped);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    apiClient.getChallenges().then((data: any[]) => {
+      const mapped: Challenge[] = data.map((c: any) => ({
+        id: c.id,
+        title: c.title,
+        description: c.description,
+        type: c.type,
+        difficulty: c.difficulty,
+        category: c.category,
+        prizePool: c.prize_pool,
+        participantsCount: c.participants_count,
+        maxParticipants: c.max_participants,
+        startsAt: c.starts_at,
+        endsAt: c.ends_at,
+        status: c.status,
+        tasks: c.task_ids,
+        topParticipants: c.top_participants,
+      }));
+      setChallenges(mapped);
+    }).catch(() => {});
+  }, []);
+
+  const filteredTasks = tasks.filter((t) => {
     if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
     if (selectedDifficulty !== 'all' && t.difficulty !== selectedDifficulty) return false;
     return true;
@@ -537,7 +592,7 @@ export default function TasksPage() {
     );
   }
 
-  const activeChallenges = mockChallenges.filter((c) => c.status === 'active').length;
+  const activeChallenges = challenges.filter((c) => c.status === 'active').length;
 
   return (
     <PageTransition>
@@ -581,7 +636,7 @@ export default function TasksPage() {
         {activeTab === 'challenges' && (
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockChallenges.map((challenge) => (
+              {challenges.map((challenge) => (
                 <ChallengeCard key={challenge.id} challenge={challenge} />
               ))}
             </div>
@@ -594,7 +649,7 @@ export default function TasksPage() {
         {/* Categories */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {TASK_CATEGORIES.map((cat) => {
-            const count = mockTasks.filter((t) => t.category === cat.id).length;
+            const count = tasks.filter((t) => t.category === cat.id).length;
             return (
               <button
                 key={cat.id}
