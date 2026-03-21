@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, FileText, Code, Video, Presentation, Users, Hash } from 'lucide-react';
+import { Search, X, FileText, Code, Video, Presentation, Users, Hash, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllMaterials } from '../../../entities/material';
@@ -187,6 +187,26 @@ export function HeaderSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               {!query && (
                 <div className="border-t border-white/[0.06] px-4 py-3">
                   <p className="text-xs text-white/20">Начните вводить — поиск по материалам, людям и сообществам</p>
+                </div>
+              )}
+
+              {/* AI Search footer — always visible when there is any input */}
+              {query.length >= 1 && (
+                <div className="border-t border-white/[0.06] px-4 py-2.5">
+                  <button
+                    onClick={() => go(`/ai-search?q=${encodeURIComponent(query)}`)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-accent-green/10 to-accent-cyan/10 border border-accent-green/20 hover:from-accent-green/20 hover:to-accent-cyan/20 hover:border-accent-green/40 transition-all group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={13} className="text-accent-green" />
+                      <span className="text-xs font-medium text-accent-green">
+                        AI-поиск: «{query}»
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-white/30 group-hover:text-white/50 transition-colors">
+                      Найти по смыслу →
+                    </span>
+                  </button>
                 </div>
               )}
             </div>
