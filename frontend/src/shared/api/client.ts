@@ -221,7 +221,7 @@ class ApiClient {
 
   // Chat
   async getChannels() {
-    return this.request<any[]>('/chat/channels');
+    return this.request<any[]>('/chat/channels/');
   }
 
   async getMessages(channelId: string, limit = 50) {

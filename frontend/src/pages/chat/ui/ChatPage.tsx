@@ -72,12 +72,16 @@ export default function ChatPage() {
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
+  const [channelsLoading, setChannelsLoading] = useState(false);
+  const [channelsError, setChannelsError] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   // Load channels from API
   useEffect(() => {
     if (!isAuth) return;
+    setChannelsLoading(true);
+    setChannelsError(false);
     apiClient.getChannels()
       .then((data) => {
         const mapped: ChatChannel[] = data.map((c: any) => ({
@@ -89,12 +93,17 @@ export default function ChatPage() {
           memberCount: c.member_count || 0,
           lastActivity: c.last_activity || new Date().toISOString(),
         }));
+        setChannels(mapped);
         if (mapped.length > 0) {
-          setChannels(mapped);
           setActiveChannel(mapped[0]);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setChannelsError(true);
+      })
+      .finally(() => {
+        setChannelsLoading(false);
+      });
   }, [isAuth]);
 
   // Load messages when channel changes, and connect WebSocket
@@ -272,7 +281,7 @@ export default function ChatPage() {
           <div className="flex-1 flex flex-col min-w-0 bg-surface-900/30">
             {!activeChannel ? (
               <div className="flex-1 flex items-center justify-center text-white/20 text-sm">
-                {!isAuth ? 'Войдите, чтобы участвовать в чатах' : channels.length === 0 ? 'Загрузка каналов...' : 'Выберите канал'}
+                {channelsLoading ? 'Загрузка каналов...' : channelsError ? 'Не удалось загрузить каналы' : channels.length === 0 ? 'Каналы не найдены' : 'Выберите канал'}
               </div>
             ) : null}
             {/* Channel header */}
