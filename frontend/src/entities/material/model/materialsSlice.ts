@@ -22,6 +22,7 @@ function mapMaterial(data: any): Material {
     tags: data.tags,
     tableOfContents: data.table_of_contents,
     communityId: data.community_id,
+    pdfUrl: data.pdf_url ?? null,
     createdAt: data.created_at,
   };
 }

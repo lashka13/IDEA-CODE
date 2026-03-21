@@ -5,9 +5,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_MULTIPLE_DATABASES: auth_db,content_db,community_db,transaction_db,notification_db,chat_db
+      POSTGRES_MULTIPLE_DATABASES: auth_db,content_db,community_db,transaction_db,notification_db,chat_db,search_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
@@ -79,6 +79,7 @@ services:
       - transaction_service
       - notification_service
       - chat_service
+      - search_service
     restart: unless-stopped
 
   # ── Microservices ───────────────────────────────────────────
@@ -108,6 +109,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/1
       AUTH_SERVICE_URL: http://auth_service:8000
+      SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
     depends_on:
       postgres:
         condition: service_healthy
@@ -182,9 +184,38 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  search_service:
+    build: ./search_service
+    environment:
+      ANONYMIZED_TELEMETRY: "False"
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/search_db
+      SECRET_KEY: super-secret-key-change-in-production
+      CONTENT_SERVICE_URL: http://content_service:8000
+      # Internal URL to fetch /uploads/... PDFs for indexing (set to your auth service in prod).
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth_service:8000}
+      SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      EMBEDDING_MODEL: openai/text-embedding-3-small
+      LLM_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      auth_service:
+        condition: service_started
+      content_service:
+        condition: service_started
+    volumes:
+      - search_data:/app/chroma_data
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
   zkdata:
   kafkadata:
   uploads:
+  search_data:

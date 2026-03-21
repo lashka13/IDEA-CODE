@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -26,8 +26,6 @@ import {
   Play,
   Copy,
   Check,
-  Loader2,
-  AlertCircle,
 } from 'lucide-react';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectIsAuthenticated, selectCurrentUser } from '../../../features/auth';
@@ -488,7 +486,6 @@ export default function AddMaterialPage() {
   // Section open states
   const [openSections, setOpenSections] = useState({
     basic: true,
-    pdf: false,
     category: false,
     lessons: false,
   });
@@ -510,12 +507,10 @@ export default function AddMaterialPage() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-
-  // PDF document state
+  /** Optional PDF for RAG (uploaded on submit to auth_service, pdf_url on material). */
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfUploading, setPdfUploading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   if (!isAuth) {
     return (
@@ -577,42 +572,38 @@ export default function AddMaterialPage() {
     setCoverPreview(covers[Math.floor(Math.random() * covers.length)]);
   };
 
-  const handlePdfSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
-      setPdfError('Только PDF-файлы');
+  const handlePdfPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    setPdfError(null);
+    if (!f) return;
+    if (f.type !== 'application/pdf') {
+      setPdfError('Нужен файл PDF');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setPdfError('Файл слишком большой (максимум 10 МБ)');
+    if (f.size > 10 * 1024 * 1024) {
+      setPdfError('Максимум 10 МБ');
       return;
     }
-    setPdfFile(file);
-    setPdfError(null);
-    setPdfUrl(null);
-    setPdfUploading(true);
-    try {
-      const result = await apiClient.uploadFile(file);
-      setPdfUrl(result.url);
-    } catch (err: any) {
-      setPdfError(err.message || 'Ошибка загрузки');
-      setPdfFile(null);
-    } finally {
-      setPdfUploading(false);
-    }
-  };
-
-  const removePdf = () => {
-    setPdfFile(null);
-    setPdfUrl(null);
-    setPdfError(null);
+    setPdfFile(f);
   };
 
   const handleSubmit = async () => {
     if (!canPublish) return;
     setIsSubmitting(true);
+    setPdfError(null);
     try {
+      let pdfUrl: string | undefined;
+      if (pdfFile) {
+        try {
+          const up = await apiClient.uploadFile(pdfFile);
+          pdfUrl = up.url as string;
+        } catch {
+          setPdfError('Не удалось загрузить PDF. Попробуйте ещё раз.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const material = await apiClient.createMaterial({
         title,
         description,
@@ -623,9 +614,9 @@ export default function AddMaterialPage() {
         tags,
         price,
         cover_url: coverPreview || undefined,
-        content_url: pdfUrl || undefined,
         technology: tags,
         table_of_contents: lessons.map((l) => l.title),
+        pdf_url: pdfUrl,
       });
       // Create lessons sequentially
       for (let i = 0; i < lessons.length; i++) {
@@ -782,6 +773,48 @@ export default function AddMaterialPage() {
                 </div>
 
                 <div>
+                  <label className="block text-xs text-white/40 mb-2">
+                    PDF для поиска и AI <span className="text-white/20">(необязательно)</span>
+                  </label>
+                  <p className="text-[11px] text-white/25 mb-2">
+                    Текст из PDF попадёт в Smart Search и RAG вместе с уроками. До 10 МБ.
+                  </p>
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handlePdfPick}
+                  />
+                  {pdfFile ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                      <FileText size={16} className="text-accent-cyan flex-shrink-0" />
+                      <span className="text-xs text-white/70 truncate flex-1">{pdfFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPdfFile(null);
+                          if (pdfInputRef.current) pdfInputRef.current.value = '';
+                        }}
+                        className="p-1 rounded-lg text-white/30 hover:text-red-400"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => pdfInputRef.current?.click()}
+                      className="w-full h-24 border-2 border-dashed border-white/[0.08] rounded-xl flex flex-col items-center justify-center gap-2 hover:border-accent-cyan/20 hover:bg-accent-cyan/[0.02] transition-all"
+                    >
+                      <Upload size={22} className="text-white/20" />
+                      <span className="text-xs text-white/30">Выбрать PDF</span>
+                    </button>
+                  )}
+                  {pdfError && <p className="text-[10px] text-red-400/80 mt-1">{pdfError}</p>}
+                </div>
+
+                <div>
                   <label className="block text-xs text-white/40 mb-2">Обложка</label>
                   {coverPreview ? (
                     <div className="relative rounded-xl overflow-hidden h-40">
@@ -806,107 +839,7 @@ export default function AddMaterialPage() {
               </div>
             </Section>
 
-            {/* Section 2: PDF Document */}
-            <Section
-              title="PDF документ"
-              icon={<FileText size={16} />}
-              open={openSections.pdf}
-              onToggle={() => toggleSection('pdf')}
-              badge={
-                pdfUrl ? (
-                  <span className="w-5 h-5 rounded-full bg-accent-green/15 flex items-center justify-center">
-                    <Check size={10} className="text-accent-green" />
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-white/25 mr-1">необязательно</span>
-                )
-              }
-            >
-              <div className="space-y-3">
-                <p className="text-xs text-white/40 leading-relaxed">
-                  Загрузите PDF-конспект или лекцию. После публикации документ будет проиндексирован —
-                  пользователи найдут его через AI-поиск и смогут задавать ассистенту вопросы по его содержимому.
-                </p>
-
-                {/* Upload area */}
-                {!pdfFile && !pdfUrl && (
-                  <label className="block cursor-pointer">
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={handlePdfSelect}
-                      className="hidden"
-                    />
-                    <div className="w-full h-28 border-2 border-dashed border-white/[0.08] rounded-xl flex flex-col items-center justify-center gap-2 hover:border-accent-green/30 hover:bg-accent-green/[0.02] transition-all group">
-                      <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-accent-green/10 flex items-center justify-center transition-colors">
-                        <FileText size={18} className="text-white/30 group-hover:text-accent-green/60 transition-colors" />
-                      </div>
-                      <p className="text-xs text-white/30 group-hover:text-white/50 transition-colors">
-                        Нажмите для выбора PDF · максимум 10 МБ
-                      </p>
-                    </div>
-                  </label>
-                )}
-
-                {/* Uploading */}
-                {pdfUploading && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                    <Loader2 size={16} className="text-accent-green animate-spin flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/60 truncate">{pdfFile?.name}</p>
-                      <p className="text-[10px] text-white/30 mt-0.5">Загрузка…</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Uploaded successfully */}
-                {pdfUrl && !pdfUploading && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-accent-green/5 border border-accent-green/20">
-                    <div className="w-9 h-9 rounded-lg bg-accent-green/10 flex items-center justify-center flex-shrink-0">
-                      <FileText size={16} className="text-accent-green" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/80 font-medium truncate">{pdfFile?.name}</p>
-                      <p className="text-[10px] text-accent-green/60 mt-0.5">
-                        ✓ Загружен · будет проиндексирован после публикации
-                      </p>
-                    </div>
-                    <button
-                      onClick={removePdf}
-                      className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-
-                {/* Error */}
-                {pdfError && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-                    <AlertCircle size={14} className="flex-shrink-0" />
-                    {pdfError}
-                    <button
-                      onClick={() => setPdfError(null)}
-                      className="ml-auto hover:text-red-300 transition-colors"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-
-                {/* Re-upload option when pdf is set */}
-                {pdfUrl && (
-                  <label className="block cursor-pointer">
-                    <input type="file" accept="application/pdf" onChange={handlePdfSelect} className="hidden" />
-                    <span className="text-[10px] text-white/25 hover:text-white/40 transition-colors cursor-pointer">
-                      Заменить файл
-                    </span>
-                  </label>
-                )}
-              </div>
-            </Section>
-
-            {/* Section 3: Category */}
+            {/* Section 2: Category */}
             <Section
               title="Категоризация и цена"
               icon={<Layers size={16} />}

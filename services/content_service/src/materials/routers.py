@@ -97,6 +97,7 @@ async def create_material(
         language=data.language, technology=data.technology, difficulty=data.difficulty,
         format=data.format, task_type=data.task_type, tags=data.tags,
         table_of_contents=data.table_of_contents, community_id=data.community_id,
+        pdf_url=data.pdf_url,
     )
     db.add(material)
     await db.commit()
@@ -112,7 +113,9 @@ async def create_material(
 
 @router.patch("/{material_id}", response_model=MaterialResponse)
 async def update_material(
-    material_id: str, data: MaterialUpdate,
+    material_id: str,
+    data: MaterialUpdate,
+    request: Request,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -127,12 +130,17 @@ async def update_material(
         setattr(material, field, value)
     await db.commit()
     await db.refresh(material)
+
+    kafka_producer = request.app.state.kafka_producer
+    await kafka_producer.send_and_wait("material.updated", {"material_id": material_id})
+
     return MaterialResponse.model_validate(material)
 
 
 @router.delete("/{material_id}", status_code=204)
 async def delete_material(
     material_id: str,
+    request: Request,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -144,6 +152,9 @@ async def delete_material(
         raise HTTPException(status_code=403, detail="Not your material")
     await db.delete(material)
     await db.commit()
+
+    kafka_producer = request.app.state.kafka_producer
+    await kafka_producer.send_and_wait("material.deleted", {"material_id": material_id})
 
 
 @router.post("/{material_id}/purchase", response_model=MaterialResponse)
