@@ -1,1 +1,1 @@
-export { default as communitiesReducer, selectAllCommunities, selectCommunityBySlug, selectActiveCommunities } from './model/communitiesSlice';
+export { default as communitiesReducer, fetchCommunities, selectAllCommunities, selectCommunityBySlug, selectActiveCommunities } from './model/communitiesSlice';

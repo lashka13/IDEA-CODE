@@ -1,1 +1,1 @@
-export { default as achievementsReducer, selectAllAchievements, selectAchievementsByIds } from './model/achievementsSlice';
+export { default as achievementsReducer, fetchAchievements, selectAllAchievements, selectAchievementsByIds } from './model/achievementsSlice';

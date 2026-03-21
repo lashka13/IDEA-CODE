@@ -1,1 +1,1 @@
-export { default as transactionsReducer, addTransaction, selectAllTransactions, selectTransactionsByUser } from './model/transactionsSlice';
+export { default as transactionsReducer, fetchTransactions, addTransaction, selectAllTransactions, selectTransactionsByUser } from './model/transactionsSlice';

@@ -1,1 +1,1 @@
-export { default as materialsReducer, selectAllMaterials, selectMaterialById, selectMaterialsByAuthor, selectMaterialsByCommunity, selectPopularMaterials } from './model/materialsSlice';
+export { default as materialsReducer, fetchMaterials, fetchPopularMaterials, selectAllMaterials, selectMaterialsLoading, selectMaterialsLoaded, selectMaterialById, selectMaterialsByAuthor, selectMaterialsByCommunity, selectPopularMaterials } from './model/materialsSlice';

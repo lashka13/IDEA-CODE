@@ -1,24 +1,41 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Star } from 'lucide-react';
+import { LogIn, Star, UserPlus } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { login, selectIsAuthenticated } from '../../../features/auth';
+import { loginAsync, selectIsAuthenticated, selectAuthLoading, selectAuthError, clearError } from '../../../features/auth';
 import { testUsers } from '../../../shared/api/mocks';
 import { PageTransition, GlassCard, GradientMesh, CodeCoinIcon, Badge } from '../../../shared/ui';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+const DEFAULT_PASSWORD = 'password123';
 
 export default function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const isAuth = useAppSelector(selectIsAuthenticated);
+  const loading = useAppSelector(selectAuthLoading);
+  const error = useAppSelector(selectAuthError);
+  const [loggingIn, setLoggingIn] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuth) navigate('/');
   }, [isAuth, navigate]);
 
-  const handleLogin = (user: typeof testUsers[0]) => {
-    dispatch(login(user));
-    navigate('/');
+  useEffect(() => {
+    return () => { dispatch(clearError()); };
+  }, [dispatch]);
+
+  const handleLogin = async (user: typeof testUsers[0]) => {
+    setLoggingIn(user.id);
+    dispatch(clearError());
+    try {
+      await dispatch(loginAsync({ username: user.username, password: DEFAULT_PASSWORD })).unwrap();
+      navigate('/');
+    } catch {
+      // Error is in Redux state
+    } finally {
+      setLoggingIn(null);
+    }
   };
 
   return (
@@ -36,7 +53,16 @@ export default function LoginPage() {
               <span className="text-surface-900 font-bold text-xl">IT</span>
             </motion.div>
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">Выберите аккаунт</h1>
-            <p className="text-white/40 text-sm">Войдите как один из тестовых пользователей</p>
+            <p className="text-white/40 text-sm">Войдите как один из пользователей</p>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-red-400 text-sm mt-2"
+              >
+                {error}
+              </motion.p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -48,9 +74,9 @@ export default function LoginPage() {
                 transition={{ delay: 0.1 + i * 0.1 }}
               >
                 <GlassCard
-                  className="cursor-pointer group text-center"
+                  className={`cursor-pointer group text-center ${loggingIn === user.id ? 'opacity-70' : ''}`}
                   glow="green"
-                  onClick={() => handleLogin(user)}
+                  onClick={() => !loading && handleLogin(user)}
                 >
                   <img
                     src={user.avatarUrl}
@@ -75,7 +101,11 @@ export default function LoginPage() {
                   </div>
                   <div className="mt-4 pt-3 border-t border-white/[0.04]">
                     <span className="text-xs text-accent-green font-medium flex items-center justify-center gap-1 group-hover:gap-2 transition-all">
-                      <LogIn size={12} /> Войти
+                      {loggingIn === user.id ? (
+                        <span className="animate-pulse">Входим...</span>
+                      ) : (
+                        <><LogIn size={12} /> Войти</>
+                      )}
                     </span>
                   </div>
                 </GlassCard>
