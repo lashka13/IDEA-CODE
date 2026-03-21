@@ -151,7 +151,7 @@ export default function ChatPage() {
     return () => {
       ws.close();
     };
-  }, [isAuth, activeChannel.id]);
+  }, [isAuth, activeChannel?.id]);
 
   const channelMessages = activeChannel
     ? localMessages
@@ -191,9 +191,9 @@ export default function ChatPage() {
     };
     setLocalMessages((prev) => [...prev, newMsg]);
     try {
-      await apiClient.sendMessage(activeChannel.id, { text });
+      await apiClient.sendMessage(activeChannel!.id, { text });
     } catch {}
-  }, [inputValue, currentUser, activeChannel.id]);
+  }, [inputValue, currentUser, activeChannel?.id]);
 
   if (!isAuth) {
     return (
@@ -240,7 +240,7 @@ export default function ChatPage() {
                   {filteredChannels ? (
                     <div className="space-y-0.5">
                       {filteredChannels.map((ch) => (
-                        <ChannelButton key={ch.id} channel={ch} active={activeChannel.id === ch.id} onClick={() => { setActiveChannel(ch); setSearchQuery(''); }} />
+                        <ChannelButton key={ch.id} channel={ch} active={activeChannel?.id === ch.id} onClick={() => { setActiveChannel(ch); setSearchQuery(''); }} />
                       ))}
                     </div>
                   ) : (
@@ -249,7 +249,7 @@ export default function ChatPage() {
                         <p className="text-[10px] font-bold uppercase text-white/20 px-2 mb-1">Общие</p>
                         <div className="space-y-0.5">
                           {generalChannels.map((ch) => (
-                            <ChannelButton key={ch.id} channel={ch} active={activeChannel.id === ch.id} onClick={() => setActiveChannel(ch)} />
+                            <ChannelButton key={ch.id} channel={ch} active={activeChannel?.id === ch.id} onClick={() => setActiveChannel(ch)} />
                           ))}
                         </div>
                       </div>
@@ -257,7 +257,7 @@ export default function ChatPage() {
                         <p className="text-[10px] font-bold uppercase text-white/20 px-2 mb-1">По темам</p>
                         <div className="space-y-0.5">
                           {topicChannels.map((ch) => (
-                            <ChannelButton key={ch.id} channel={ch} active={activeChannel.id === ch.id} onClick={() => setActiveChannel(ch)} />
+                            <ChannelButton key={ch.id} channel={ch} active={activeChannel?.id === ch.id} onClick={() => setActiveChannel(ch)} />
                           ))}
                         </div>
                       </div>
