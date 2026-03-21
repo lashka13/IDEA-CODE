@@ -3,6 +3,7 @@ from fastapi import APIRouter, Request, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.db import get_db
+from src.utils import get_current_user_id
 from src.documents.models import DocumentChunk, Document
 from src.assistant.schemas import AskRequest, AskResponse
 from src.assistant.rag import generate_answer
@@ -36,6 +37,7 @@ def _append_chunk(
 async def ask_assistant(
     body: AskRequest,
     request: Request,
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     context_chunks: list[dict] = []

@@ -144,10 +144,10 @@ async def seed():
     from sqlalchemy import text
     async with engine.begin() as conn:
         try:
-            await conn.execute(text("ALTER TABLE projects ADD COLUMN cover_url VARCHAR(500) DEFAULT ''"))
-            print("  added cover_url column")
-        except Exception:
-            pass  # column already exists
+            await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS cover_url VARCHAR(500) DEFAULT ''"))
+            print("  ensured cover_url column exists")
+        except Exception as e:
+            print(f"  cover_url column check: {e}")
 
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:

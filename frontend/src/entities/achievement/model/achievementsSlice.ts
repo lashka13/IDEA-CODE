@@ -1,6 +1,5 @@
 import { createSlice, createSelector, createAsyncThunk } from '@reduxjs/toolkit';
 import { type Achievement } from '../../../shared/types';
-import { mockAchievements } from '../../../shared/api/mocks';
 import { apiClient } from '../../../shared/api/client';
 
 function mapAchievement(data: any): Achievement {
@@ -29,11 +28,13 @@ export const fetchAchievements = createAsyncThunk(
 interface AchievementsState {
   items: Achievement[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: AchievementsState = {
-  items: mockAchievements,
+  items: [],
   loading: false,
+  error: null,
 };
 
 export const achievementsSlice = createSlice({
@@ -42,12 +43,16 @@ export const achievementsSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchAchievements.pending, (state) => { state.loading = true; })
+      .addCase(fetchAchievements.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchAchievements.fulfilled, (state, action) => {
         state.items = action.payload;
         state.loading = false;
+        state.error = null;
       })
-      .addCase(fetchAchievements.rejected, (state) => { state.loading = false; });
+      .addCase(fetchAchievements.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || 'Failed to fetch achievements';
+      });
   },
 });
 

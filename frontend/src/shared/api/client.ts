@@ -119,7 +119,7 @@ class ApiClient {
     return this.request<any>(`/users/${userId}`);
   }
 
-  async updateProfile(data: any) {
+  async updateProfile(data: { name?: string; bio?: string; avatar_url?: string; tech_stack?: string[]; skills?: Record<string, number> }) {
     return this.request<any>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -257,14 +257,6 @@ class ApiClient {
     return this.request<any>(`/notifications/${id}/read`, { method: 'POST' });
   }
 
-  // Users
-  async updateProfile(data: { name?: string; bio?: string; avatar_url?: string; tech_stack?: string[]; skills?: Record<string, number> }) {
-    return this.request<any>('/users/me', {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
   // Chat
   async getChannels() {
     return this.request<any[]>('/chat/channels/');
@@ -348,53 +340,6 @@ class ApiClient {
     });
     if (!response.ok) throw new Error('Upload failed');
     return response.json();
-  }
-
-  // AI Search & RAG (monolith /api/ai/* — ai-search page)
-  async aiSearch(query: string, limit = 10) {
-    return this.request<{
-      query: string;
-      results: Array<{
-        material_id: string;
-        score: number;
-        snippet: string;
-        material: any | null;
-      }>;
-      total: number;
-    }>('/ai/search', {
-      method: 'POST',
-      body: JSON.stringify({ query, limit }),
-    });
-  }
-
-  async aiChat(
-    question: string,
-    materialIds: string[],
-    chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
-  ) {
-    return this.request<{
-      answer: string;
-      sources: Array<{ material_id: string; text: string; score: number }>;
-    }>('/ai/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        question,
-        material_ids: materialIds,
-        chat_history: chatHistory,
-      }),
-    });
-  }
-
-  async aiIndexMaterial(materialId: string) {
-    return this.request<{
-      material_id: string;
-      success: boolean;
-      chunks_indexed: number;
-      message: string;
-    }>('/ai/index-material', {
-      method: 'POST',
-      body: JSON.stringify({ material_id: materialId }),
-    });
   }
 
   // Smart Search (microservices search_service)

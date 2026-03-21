@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     KAFKA_BOOTSTRAP_SERVERS: str = "kafka:29092"
     REDIS_URL: str = "redis://redis:6379/0"
     REGISTRATION_BONUS: int = 50
+    INTERNAL_SERVICE_TOKEN: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

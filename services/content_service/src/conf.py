@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     KAFKA_BOOTSTRAP_SERVERS: str = "kafka:29092"
     REDIS_URL: str = "redis://redis:6379/1"
+    CORS_ORIGINS: list[str] = ["*"]
     AUTH_SERVICE_URL: str = "http://auth_service:8000"
-    # Shared with search_service so it can fetch full lesson bodies for indexing (Docker network).
     SEARCH_INDEX_SECRET: str = "search-service-internal"
 
     class Config:

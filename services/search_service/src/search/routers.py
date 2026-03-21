@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query, Request, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.db import get_db
+from src.utils import get_current_user_id
 from src.documents.models import DocumentChunk, Document
 from src.search.schemas import SearchResultItem, SearchResponse
 from src.search.hybrid import hybrid_search
@@ -60,7 +61,7 @@ async def search_documents(
 
 
 @router.post("/index/rebuild", status_code=200)
-async def rebuild_index(request: Request, db: AsyncSession = Depends(get_db)):
+async def rebuild_index(request: Request, user_id: str = Depends(get_current_user_id), db: AsyncSession = Depends(get_db)):
     """Force rebuild BM25 index from database chunks."""
     bm25_index = request.app.state.bm25_index
     vector_index = request.app.state.vector_index

@@ -6,7 +6,7 @@ import { apiClient } from '../../../shared/api/client';
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
-  sources?: Array<{ material_id: string; text: string; score: number }>;
+  sources?: string[];
 }
 
 interface AIChatPanelProps {
@@ -43,7 +43,11 @@ export function AIChatPanel({ materialIds, materialTitles, onClose }: AIChatPane
     setLoading(true);
 
     try {
-      const response = await apiClient.aiChat(text, materialIds, history);
+      const response = await apiClient.askAssistant({
+        query: text,
+        document_ids: materialIds,
+        history: history,
+      });
       const assistantMsg: ChatMessage = {
         role: 'assistant',
         content: response.answer,
@@ -189,7 +193,7 @@ export function AIChatPanel({ materialIds, materialTitles, onClose }: AIChatPane
                           exit={{ opacity: 0, height: 0 }}
                           className="mt-1 space-y-1 overflow-hidden"
                         >
-                          {msg.sources.map((src, si) => (
+                          {msg.sources.map((sourceId, si) => (
                             <div
                               key={si}
                               className="px-2.5 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04] text-[11px] text-white/40"
@@ -197,8 +201,7 @@ export function AIChatPanel({ materialIds, materialTitles, onClose }: AIChatPane
                               <span className="text-accent-green/60 font-medium">
                                 [{si + 1}]
                               </span>{' '}
-                              {src.text.slice(0, 150)}
-                              {src.text.length > 150 ? '…' : ''}
+                              Документ: {sourceId}
                             </div>
                           ))}
                         </motion.div>

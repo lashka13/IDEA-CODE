@@ -1,6 +1,5 @@
 import { createSlice, createSelector, createAsyncThunk } from '@reduxjs/toolkit';
 import { type Community } from '../../../shared/types';
-import { mockCommunities } from '../../../shared/api/mocks';
 import { apiClient } from '../../../shared/api/client';
 
 function mapCommunity(data: any): Community {
@@ -35,11 +34,13 @@ export const fetchCommunities = createAsyncThunk(
 interface CommunitiesState {
   items: Community[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: CommunitiesState = {
-  items: mockCommunities,
+  items: [],
   loading: false,
+  error: null,
 };
 
 export const communitiesSlice = createSlice({
@@ -48,12 +49,16 @@ export const communitiesSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchCommunities.pending, (state) => { state.loading = true; })
+      .addCase(fetchCommunities.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchCommunities.fulfilled, (state, action) => {
         state.items = action.payload;
         state.loading = false;
+        state.error = null;
       })
-      .addCase(fetchCommunities.rejected, (state) => { state.loading = false; });
+      .addCase(fetchCommunities.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || 'Failed to fetch communities';
+      });
   },
 });
 

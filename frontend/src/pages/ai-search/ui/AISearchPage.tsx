@@ -5,9 +5,6 @@ import {
   Search,
   Sparkles,
   FileText,
-  Code,
-  Video,
-  Star,
   ChevronRight,
   Loader2,
   AlertCircle,
@@ -24,47 +21,17 @@ import { GradientMesh, GrainOverlay } from '../../../shared/ui';
 // ---------------------------------------------------------------------------
 
 interface SearchResult {
-  material_id: string;
+  chunk_id: string;
+  document_id: string;
+  document_title: string;
   score: number;
   snippet: string;
-  material: {
-    id: string;
-    title: string;
-    description: string;
-    cover_url: string;
-    content_url?: string | null;
-    price: number;
-    rating: number;
-    rating_count: number;
-    purchase_count: number;
-    language: string;
-    technology: string[];
-    difficulty: string;
-    format: string;
-    task_type: string;
-    tags: string[];
-    table_of_contents: string[];
-    author_id: string;
-    created_at: string;
-  } | null;
+  source_type: string;
 }
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-const FORMAT_ICONS: Record<string, any> = {
-  article: FileText,
-  code: Code,
-  video: Video,
-  presentation: FileText,
-};
-
-const DIFFICULTY_COLORS: Record<string, string> = {
-  junior: 'text-accent-green bg-accent-green/10 border-accent-green/20',
-  middle: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
-  senior: 'text-red-400 bg-red-400/10 border-red-400/20',
-};
 
 function ScoreBar({ score }: { score: number }) {
   return (
@@ -93,17 +60,9 @@ function MaterialCard({
   selected: boolean;
   onClick: () => void;
 }) {
-  const mat = result.material;
-  const title = mat?.title ?? result.material_id;
-  const description = mat?.description ?? result.snippet;
-  const format = mat?.format ?? 'article';
-  const difficulty = mat?.difficulty ?? 'junior';
-  const tags = mat?.tags ?? [];
-  const technology = mat?.technology ?? [];
-  const rating = mat?.rating ?? 0;
-  const price = mat?.price ?? 0;
-  const hasPdf = Boolean(mat?.content_url);
-  const Icon = FORMAT_ICONS[format] ?? FileText;
+  const title = result.document_title;
+  const description = result.snippet;
+  const Icon = FileText;
 
   return (
     <motion.div
@@ -146,55 +105,20 @@ function MaterialCard({
           <p className="text-xs text-white/40 line-clamp-2 mb-2 leading-relaxed">{description}</p>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={`text-[10px] px-2 py-0.5 rounded-full border ${DIFFICULTY_COLORS[difficulty] ?? DIFFICULTY_COLORS.junior}`}
-            >
-              {difficulty}
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/40">
+              {result.source_type}
             </span>
-            {hasPdf && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-accent-cyan/30 bg-accent-cyan/10 text-accent-cyan flex items-center gap-1">
-                <FileText size={9} /> PDF
-              </span>
-            )}
-            {technology.slice(0, 2).map((t) => (
-              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/40">
-                {t}
-              </span>
-            ))}
-            {tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="text-[10px] text-white/25">#{tag}</span>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3 mt-2">
-            {rating > 0 && (
-              <div className="flex items-center gap-1">
-                <Star size={10} className="text-yellow-400 fill-yellow-400" />
-                <span className="text-[10px] text-white/40">{rating.toFixed(1)}</span>
-              </div>
-            )}
-            <span className="text-[10px] text-accent-green font-medium">{price > 0 ? `${price} CC` : 'Бесплатно'}</span>
-            {mat && (
-              <Link
-                to={`/catalog/${mat.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="ml-auto text-[10px] text-white/25 hover:text-accent-cyan transition-colors flex items-center gap-0.5"
-              >
-                В каталог <ChevronRight size={10} />
-              </Link>
-            )}
+            <Link
+              to={`/catalog/${result.document_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="ml-auto text-[10px] text-white/25 hover:text-accent-cyan transition-colors flex items-center gap-0.5"
+            >
+              В каталог <ChevronRight size={10} />
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Snippet */}
-      {result.snippet && result.snippet !== description && (
-        <div className="mt-3 pt-3 border-t border-white/[0.04]">
-          <p className="text-[11px] text-white/30 italic line-clamp-2 leading-relaxed">
-            «{result.snippet}»
-          </p>
-        </div>
-      )}
     </motion.div>
   );
 }
@@ -253,7 +177,7 @@ export default function AISearchPage() {
     setError(null);
     setResults([]);
     try {
-      const data = await apiClient.aiSearch(q.trim(), 10);
+      const data = await apiClient.smartSearch(q.trim(), 10);
       setResults(data.results);
     } catch (err: any) {
       setError(err.message || 'Ошибка при поиске');
@@ -289,8 +213,8 @@ export default function AISearchPage() {
   };
 
   const toggleSelect = (result: SearchResult) => {
-    const id = result.material_id;
-    const title = result.material?.title ?? id;
+    const id = result.document_id;
+    const title = result.document_title;
     setSelectedIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       return [...prev, id];
@@ -304,8 +228,8 @@ export default function AISearchPage() {
   const openChat = () => {
     if (selectedIds.length === 0 && results.length > 0) {
       const first = results[0];
-      setSelectedIds([first.material_id]);
-      setSelectedTitles([first.material?.title ?? first.material_id]);
+      setSelectedIds([first.document_id]);
+      setSelectedTitles([first.document_title]);
     }
     setChatOpen(true);
   };
@@ -462,10 +386,10 @@ export default function AISearchPage() {
                 <AnimatePresence>
                   {results.map((result, idx) => (
                     <MaterialCard
-                      key={result.material_id}
+                      key={result.chunk_id}
                       result={result}
                       rank={idx + 1}
-                      selected={selectedIds.includes(result.material_id)}
+                      selected={selectedIds.includes(result.document_id)}
                       onClick={() => toggleSelect(result)}
                     />
                   ))}

@@ -1,4 +1,3 @@
-import asyncio
 import json
 from contextlib import asynccontextmanager
 
@@ -10,7 +9,6 @@ import redis.asyncio as aioredis
 from src.conf import get_settings
 from src.db import engine, Base
 from src.routers import router as api_router
-from kafka_consumer import start_kafka_consumer
 
 settings = get_settings()
 
@@ -28,11 +26,8 @@ async def lifespan(app: FastAPI):
 
     app.state.redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
-    consumer_task = asyncio.create_task(start_kafka_consumer(app))
-
     yield
 
-    consumer_task.cancel()
     await app.state.kafka_producer.stop()
     await app.state.redis.close()
 
@@ -41,7 +36,7 @@ app = FastAPI(title="Community Service", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

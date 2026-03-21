@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from src.db import get_db
+from src.utils import get_current_user_id
 from src.documents.models import Document, DocumentChunk
 from src.documents.schemas import (
     DocumentResponse, DocumentDetailResponse, DocumentListResponse,
@@ -48,6 +49,7 @@ async def get_document(document_id: str, db: AsyncSession = Depends(get_db)):
 async def delete_document(
     document_id: str,
     request: Request,
+    user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

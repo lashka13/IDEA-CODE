@@ -46,9 +46,8 @@ class OpenRouterEmbedder(EmbeddingFunction[Documents]):
                 batch_embs = [item["embedding"] for item in data["data"]]
                 all_embeddings.extend(batch_embs)
             except Exception as e:
-                logger.error(f"OpenRouter embedding failed: {e}")
-                dim = 1536
-                all_embeddings.extend([[0.0] * dim for _ in batch])
+                logger.error(f"OpenRouter embedding failed for batch of {len(batch)} texts: {e}")
+                raise
 
         return all_embeddings
 
@@ -67,10 +66,6 @@ class VectorIndex:
             is_persistent=True,
             persist_directory=persist_dir,
         ))
-        try:
-            self._client.delete_collection(COLLECTION_NAME)
-        except Exception:
-            pass
 
         self._collection = self._client.get_or_create_collection(
             name=COLLECTION_NAME,

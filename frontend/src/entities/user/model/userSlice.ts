@@ -1,6 +1,5 @@
 import { createSlice, createSelector, createAsyncThunk } from '@reduxjs/toolkit';
 import { type User } from '../../../shared/types';
-import { mockUsers } from '../../../shared/api/mocks';
 import { apiClient } from '../../../shared/api/client';
 
 function mapUser(data: any): User {
@@ -38,11 +37,13 @@ export const fetchUsers = createAsyncThunk(
 interface UsersState {
   items: User[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: UsersState = {
-  items: mockUsers,
+  items: [],
   loading: false,
+  error: null,
 };
 
 export const usersSlice = createSlice({
@@ -51,12 +52,16 @@ export const usersSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchUsers.pending, (state) => { state.loading = true; })
+      .addCase(fetchUsers.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.items = action.payload;
         state.loading = false;
+        state.error = null;
       })
-      .addCase(fetchUsers.rejected, (state) => { state.loading = false; });
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || 'Failed to fetch users';
+      });
   },
 });
 

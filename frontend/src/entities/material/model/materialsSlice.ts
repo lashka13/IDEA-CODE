@@ -1,6 +1,5 @@
 import { createSlice, createSelector, createAsyncThunk } from '@reduxjs/toolkit';
 import { type Material } from '../../../shared/types';
-import { mockMaterials } from '../../../shared/api/mocks';
 import { apiClient } from '../../../shared/api/client';
 
 function mapMaterial(data: any): Material {
@@ -51,12 +50,14 @@ interface MaterialsState {
   items: Material[];
   loading: boolean;
   loaded: boolean;
+  error: string | null;
 }
 
 const initialState: MaterialsState = {
-  items: mockMaterials,
+  items: [],
   loading: false,
   loaded: false,
+  error: null,
 };
 
 export const materialsSlice = createSlice({
@@ -67,15 +68,17 @@ export const materialsSlice = createSlice({
     builder
       .addCase(fetchMaterials.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchMaterials.fulfilled, (state, action) => {
         state.items = action.payload;
         state.loading = false;
         state.loaded = true;
+        state.error = null;
       })
-      .addCase(fetchMaterials.rejected, (state) => {
+      .addCase(fetchMaterials.rejected, (state, action) => {
         state.loading = false;
-        // Keep mock data as fallback
+        state.error = (action.payload as string) || 'Failed to fetch materials';
       });
   },
 });
@@ -83,6 +86,7 @@ export const materialsSlice = createSlice({
 export const selectAllMaterials = (state: { materials: MaterialsState }) => state.materials.items;
 export const selectMaterialsLoading = (state: { materials: MaterialsState }) => state.materials.loading;
 export const selectMaterialsLoaded = (state: { materials: MaterialsState }) => state.materials.loaded;
+export const selectMaterialsError = (state: { materials: MaterialsState }) => state.materials.error;
 export const selectMaterialById = (id: string) =>
   createSelector(selectAllMaterials, (items) => items.find((m) => m.id === id));
 export const selectMaterialsByAuthor = (authorId: string) =>
