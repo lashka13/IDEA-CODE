@@ -110,6 +110,10 @@ export default function MentorsPage() {
   const [filterSpec, setFilterSpec] = useState<string | null>(null);
   const [bookingMentor, setBookingMentor] = useState<Mentor | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('');
+  const [bookingTopic, setBookingTopic] = useState('Подготовка к собеседованию');
+  const [bookingComment, setBookingComment] = useState('');
 
   const allSpecs = [...new Set(mockMentors.flatMap((m) => m.specializations))];
 
@@ -131,6 +135,10 @@ export default function MentorsPage() {
     if (!isAuth) return;
     setBookingMentor(mentor);
     setBookingConfirmed(false);
+    setBookingDate('');
+    setBookingTime('');
+    setBookingTopic('Подготовка к собеседованию');
+    setBookingComment('');
   };
 
   const confirmBooking = () => {
@@ -217,6 +225,20 @@ export default function MentorsPage() {
                   <span>Ментор:</span><span className="text-white/60">{bookingMentor?.name}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span>Тема:</span><span className="text-white/60">{bookingTopic}</span>
+                </div>
+                {bookingDate && (
+                  <div className="flex justify-between">
+                    <span>Дата:</span>
+                    <span className="text-white/60">{new Date(bookingDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>
+                  </div>
+                )}
+                {bookingTime && (
+                  <div className="flex justify-between">
+                    <span>Время:</span><span className="text-white/60">{bookingTime}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
                   <span>Стоимость:</span>
                   <span className="text-accent-green font-medium">{bookingMentor?.pricePerHour} CC/час</span>
                 </div>
@@ -244,7 +266,11 @@ export default function MentorsPage() {
                   <div className="space-y-3 mb-6">
                     <div>
                       <label className="block text-xs text-white/40 mb-1.5">Тема сессии</label>
-                      <select className="w-full bg-surface-800 border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white/60 focus:outline-none [color-scheme:dark]">
+                      <select
+                        value={bookingTopic}
+                        onChange={(e) => setBookingTopic(e.target.value)}
+                        className="w-full bg-surface-800 border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white/60 focus:outline-none [color-scheme:dark]"
+                      >
                         <option>Подготовка к собеседованию</option>
                         <option>Code Review</option>
                         <option>Помощь с проектом</option>
@@ -256,18 +282,31 @@ export default function MentorsPage() {
                       <label className="block text-xs text-white/40 mb-1.5">Предпочтительное время</label>
                       <div className="flex gap-2">
                         <div className="flex-1 flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white/60">
-                          <Calendar size={14} className="text-white/20" />
-                          <span>Завтра</span>
+                          <Calendar size={14} className="text-white/20 flex-shrink-0" />
+                          <input
+                            type="date"
+                            value={bookingDate}
+                            onChange={(e) => setBookingDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="flex-1 bg-transparent text-white/60 text-sm focus:outline-none [color-scheme:dark] w-full"
+                          />
                         </div>
                         <div className="flex-1 flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white/60">
-                          <Clock size={14} className="text-white/20" />
-                          <span>18:00</span>
+                          <Clock size={14} className="text-white/20 flex-shrink-0" />
+                          <input
+                            type="time"
+                            value={bookingTime}
+                            onChange={(e) => setBookingTime(e.target.value)}
+                            className="flex-1 bg-transparent text-white/60 text-sm focus:outline-none [color-scheme:dark] w-full"
+                          />
                         </div>
                       </div>
                     </div>
                     <div>
                       <label className="block text-xs text-white/40 mb-1.5">Комментарий (опционально)</label>
                       <textarea
+                        value={bookingComment}
+                        onChange={(e) => setBookingComment(e.target.value)}
                         placeholder="Расскажите коротко, с чем нужна помощь..."
                         rows={3}
                         className="w-full bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/15 focus:outline-none resize-none"
@@ -284,9 +323,17 @@ export default function MentorsPage() {
                     </div>
                   </div>
 
-                  <Button className="w-full" onClick={confirmBooking} icon={<MessageCircle size={14} />}>
+                  <Button
+                    className="w-full"
+                    onClick={confirmBooking}
+                    icon={<MessageCircle size={14} />}
+                    disabled={!bookingDate || !bookingTime}
+                  >
                     Отправить заявку
                   </Button>
+                  {(!bookingDate || !bookingTime) && (
+                    <p className="text-center text-xs text-white/30 mt-2">Укажите дату и время для записи</p>
+                  )}
                 </>
               )}
             </div>
