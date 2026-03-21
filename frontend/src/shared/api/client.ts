@@ -80,13 +80,6 @@ class ApiClient {
     return this.request<any>(`/users/${userId}`);
   }
 
-  async updateProfile(data: any) {
-    return this.request<any>('/users/me', {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
   // Materials
   async getMaterials(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();
