@@ -15,15 +15,23 @@ services:
 
   api:
     build: ./api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./api/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/ideacode
       SECRET_KEY: super-secret-key-change-in-production
+      CHROMA_DB_PATH: /app/chroma_db
+      UPLOAD_DIR: /app/uploads
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     volumes:
       - uploads:/app/uploads
+      - chroma_db:/app/chroma_db
+      - hf_cache:/root/.cache/huggingface
 
   frontend:
     build: ./frontend
@@ -35,3 +43,5 @@ services:
 volumes:
   pgdata:
   uploads:
+  chroma_db:
+  hf_cache:

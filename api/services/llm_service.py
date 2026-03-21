@@ -3,12 +3,10 @@ LLM service for RAG-chat (answer questions about documents).
 
 Modes:
   1. OpenRouter (OpenAI-compatible) — production mode when OPENROUTER_API_KEY is set.
-     Supports hundreds of models: GPT-4o, Gemini Flash, Llama 3, Mistral, DeepSeek, etc.
-  2. Mock — development mode without any API key; shows retrieved chunks and instructions.
-
-OpenRouter API: https://openrouter.ai/docs
-Available models: https://openrouter.ai/models
+     Automatically retries on 429 and falls back to alternative free models.
+  2. Mock — development mode without any API key; shows retrieved chunks.
 """
+import asyncio
 import logging
 from typing import Optional
 
@@ -21,6 +19,14 @@ settings = get_settings()
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
+FALLBACK_MODELS = [
+    "nvidia/nemotron-3-nano-30b-a3b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemma-3-27b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+]
+
 SYSTEM_PROMPT = """Ты — учебный ассистент образовательной платформы IT-RE:SOURCE.
 Тебе предоставлены фрагменты из учебных материалов (конспектов, лекций, документов).
 Отвечай на вопросы пользователя ТОЛЬКО на основе предоставленных фрагментов.
@@ -28,10 +34,6 @@ SYSTEM_PROMPT = """Ты — учебный ассистент образоват
 Отвечай подробно, структурированно. Используй примеры из текста.
 Пиши на том языке, на котором задан вопрос."""
 
-
-# ---------------------------------------------------------------------------
-# Message builders
-# ---------------------------------------------------------------------------
 
 def _build_context(chunks: list[dict]) -> str:
     parts = []
@@ -41,31 +43,50 @@ def _build_context(chunks: list[dict]) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def _build_messages(
-    question: str,
-    context: str,
-    chat_history: list[dict],
-) -> list[dict]:
+def _build_messages(question: str, context: str, chat_history: list[dict]) -> list[dict]:
     messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
     if context:
-        messages.append({
-            "role": "user",
-            "content": f"Вот фрагменты из документов:\n\n{context}",
-        })
-        messages.append({
-            "role": "assistant",
-            "content": "Понял, изучил предоставленные материалы. Задайте вопрос.",
-        })
-    # Include last 6 messages (3 turns) to stay within context window
+        messages.append({"role": "user", "content": f"Вот фрагменты из документов:\n\n{context}"})
+        messages.append({"role": "assistant", "content": "Понял, изучил предоставленные материалы. Задайте вопрос."})
     for turn in chat_history[-6:]:
         messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": question})
     return messages
 
 
-# ---------------------------------------------------------------------------
-# OpenRouter chat (standard OpenAI-compatible format)
-# ---------------------------------------------------------------------------
+async def _try_model(model: str, messages: list[dict], headers: dict) -> Optional[str]:
+    """Try a single model with retry on 429."""
+    payload = {"model": model, "messages": messages, "max_tokens": 1024, "temperature": 0.3}
+
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                resp = await client.post(
+                    f"{OPENROUTER_BASE_URL}/chat/completions",
+                    json=payload,
+                    headers=headers,
+                )
+                if resp.status_code == 429:
+                    wait = 5 * (attempt + 1)
+                    logger.info("Model %s rate-limited (429), retry %d in %ds", model, attempt + 1, wait)
+                    await asyncio.sleep(wait)
+                    continue
+                if resp.status_code in (404, 400):
+                    logger.warning("Model %s unavailable (%s), skipping", model, resp.status_code)
+                    return None
+                resp.raise_for_status()
+                data = resp.json()
+                answer = data["choices"][0]["message"]["content"]
+                logger.info("Got answer from model %s", model)
+                return answer
+        except httpx.HTTPStatusError as exc:
+            logger.warning("Model %s HTTP error %s: %s", model, exc.response.status_code, exc.response.text[:200])
+            return None
+        except Exception as exc:
+            logger.warning("Model %s call failed: %s", model, exc)
+            return None
+    return None
+
 
 async def _openrouter_chat(messages: list[dict]) -> Optional[str]:
     if not settings.OPENROUTER_API_KEY:
@@ -74,42 +95,28 @@ async def _openrouter_chat(messages: list[dict]) -> Optional[str]:
     headers = {
         "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        # Recommended by OpenRouter for analytics / rate-limit allowlisting
         "HTTP-Referer": "https://it-resource.app",
         "X-Title": "IT-RE:SOURCE",
     }
-    payload = {
-        "model": settings.OPENROUTER_MODEL,
-        "messages": messages,
-        "max_tokens": 1024,
-        "temperature": 0.3,
-    }
 
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(
-                f"{OPENROUTER_BASE_URL}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            # Standard OpenAI response: {"choices": [{"message": {"content": "..."}}]}
-            return data["choices"][0]["message"]["content"]
-    except httpx.HTTPStatusError as exc:
-        logger.warning(
-            "OpenRouter HTTP error %s: %s",
-            exc.response.status_code,
-            exc.response.text[:300],
-        )
-    except Exception as exc:
-        logger.warning("OpenRouter call failed: %s", exc)
+    # Try primary model first
+    primary = settings.OPENROUTER_MODEL
+    result = await _try_model(primary, messages, headers)
+    if result:
+        return result
+
+    # Fallback through alternative models
+    for model in FALLBACK_MODELS:
+        if model == primary:
+            continue
+        logger.info("Trying fallback model: %s", model)
+        result = await _try_model(model, messages, headers)
+        if result:
+            return result
+
+    logger.warning("All models exhausted — no response")
     return None
 
-
-# ---------------------------------------------------------------------------
-# Mock response (no API key)
-# ---------------------------------------------------------------------------
 
 def _mock_response(question: str, chunks: list[dict]) -> str:
     if chunks:
@@ -121,23 +128,15 @@ def _mock_response(question: str, chunks: list[dict]) -> str:
             f"Найдено **{len(chunks)}** релевантных фрагментов из: {', '.join(sources)}.\n\n"
             f"Первый фрагмент:\n> {snippet}\n\n"
             "Для реальных ответов добавьте в `.env`:\n"
-            "```\nOPENROUTER_API_KEY=sk-or-...\n"
-            f"OPENROUTER_MODEL={settings.OPENROUTER_MODEL}\n```"
+            "```\nOPENROUTER_API_KEY=sk-or-...\n```"
         )
     return (
         f"**[Mock-режим: OPENROUTER_API_KEY не задан]**\n\n"
         f"Вопрос: *{question}*\n\n"
         "По указанным материалам PDF-контент не проиндексирован. "
-        "Загрузите PDF через форму создания материала — он будет проиндексирован автоматически.\n\n"
-        "Для реальных ответов добавьте в `.env`:\n"
-        "```\nOPENROUTER_API_KEY=sk-or-...\n"
-        f"OPENROUTER_MODEL={settings.OPENROUTER_MODEL}\n```"
+        "Загрузите PDF через форму создания материала — он будет проиндексирован автоматически."
     )
 
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
 
 async def answer_question(
     question: str,
