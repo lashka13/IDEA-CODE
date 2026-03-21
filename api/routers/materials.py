@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from database import get_db
@@ -114,9 +114,23 @@ async def get_material(material_id: str, db: AsyncSession = Depends(get_db)):
     return MaterialResponse.model_validate(material)
 
 
+async def _auto_index_material(material_id: str, db: AsyncSession) -> None:
+    """Background task: index newly created material into the AI vector store."""
+    try:
+        from routers.ai import _index_single_material, _rebuild_bm25
+        result = await db.execute(select(Material).where(Material.id == material_id))
+        mat = result.scalar_one_or_none()
+        if mat:
+            await _index_single_material(mat)
+            await _rebuild_bm25(db)
+    except Exception:
+        pass  # indexing is best-effort — never fail the main request
+
+
 @router.post("/", response_model=MaterialResponse, status_code=201)
 async def create_material(
     data: MaterialCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -127,6 +141,7 @@ async def create_material(
         description=data.description,
         author_id=current_user.id,
         cover_url=data.cover_url,
+        content_url=data.content_url,
         price=data.price,
         language=data.language,
         technology=data.technology,
@@ -141,6 +156,10 @@ async def create_material(
     current_user.uploads_count += 1
     await db.commit()
     await db.refresh(material)
+
+    # Automatically index this material so it's searchable right away
+    background_tasks.add_task(_auto_index_material, material_id, db)
+
     return MaterialResponse.model_validate(material)
 
 

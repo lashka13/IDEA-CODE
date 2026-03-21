@@ -6,6 +6,7 @@ class MaterialCreate(BaseModel):
     title: str
     description: str
     cover_url: str = ""
+    content_url: str | None = None
     price: int = 0
     language: str
     technology: list[str] = []
@@ -32,6 +33,7 @@ class MaterialResponse(BaseModel):
     description: str
     author_id: str
     cover_url: str
+    content_url: str | None = None
     price: int
     rating: float
     rating_count: int

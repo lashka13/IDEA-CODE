@@ -265,6 +265,53 @@ class ApiClient {
     return response.json();
   }
 
+  // AI Search & RAG Chat
+  async aiSearch(query: string, limit = 10) {
+    return this.request<{
+      query: string;
+      results: Array<{
+        material_id: string;
+        score: number;
+        snippet: string;
+        material: any | null;
+      }>;
+      total: number;
+    }>('/ai/search', {
+      method: 'POST',
+      body: JSON.stringify({ query, limit }),
+    });
+  }
+
+  async aiChat(
+    question: string,
+    materialIds: string[],
+    chatHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+  ) {
+    return this.request<{
+      answer: string;
+      sources: Array<{ material_id: string; text: string; score: number }>;
+    }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        question,
+        material_ids: materialIds,
+        chat_history: chatHistory,
+      }),
+    });
+  }
+
+  async aiIndexMaterial(materialId: string) {
+    return this.request<{
+      material_id: string;
+      success: boolean;
+      chunks_indexed: number;
+      message: string;
+    }>('/ai/index-material', {
+      method: 'POST',
+      body: JSON.stringify({ material_id: materialId }),
+    });
+  }
+
   // WebSocket
   createChatWebSocket(channelId: string) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';

@@ -7,7 +7,7 @@ import os
 from config import get_settings
 from database import engine, Base
 from routers import auth, users, materials, communities, comments, posts
-from routers import transactions, achievements, lessons, notifications, chat, upload
+from routers import transactions, achievements, lessons, notifications, chat, upload, ai
 
 settings = get_settings()
 
@@ -53,6 +53,7 @@ app.include_router(lessons.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
 
 
 @app.get("/")

@@ -12,6 +12,17 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     REGISTRATION_BONUS: int = 50
 
+    # AI Search & RAG settings
+    OPENROUTER_API_KEY: str = ""
+    # Any model from https://openrouter.ai/models
+    # Good free options: "meta-llama/llama-3.1-8b-instruct:free", "mistralai/mistral-7b-instruct:free"
+    # Recommended: "google/gemini-flash-1.5", "deepseek/deepseek-chat"
+    OPENROUTER_MODEL: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    CHROMA_DB_PATH: str = "./chroma_db"
+    EMBEDDING_MODEL: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    # When True, use local sentence-transformers; when False, use OpenRouter for embeddings too
+    USE_LOCAL_EMBEDDINGS: bool = True
+
     class Config:
         env_file = ".env"
 

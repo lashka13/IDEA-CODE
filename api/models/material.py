@@ -12,6 +12,7 @@ class Material(Base):
     description: Mapped[str] = mapped_column(String(2000))
     author_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
     cover_url: Mapped[str] = mapped_column(String(500), default="")
+    content_url: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     price: Mapped[int] = mapped_column(Integer, default=0)
     rating: Mapped[float] = mapped_column(Float, default=0.0)
     rating_count: Mapped[int] = mapped_column(Integer, default=0)

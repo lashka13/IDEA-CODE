@@ -22,6 +22,7 @@ const LoginPage = lazy(() => import('../../pages/auth'));
 const NotificationsPage = lazy(() => import('../../pages/notifications'));
 const ProfileEditPage = lazy(() => import('../../pages/profile-edit'));
 const NotFoundPage = lazy(() => import('../../pages/not-found'));
+const AISearchPage = lazy(() => import('../../pages/ai-search'));
 
 function PageLoader() {
   return (
@@ -61,6 +62,7 @@ export function AppRouter() {
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/ai-search" element={<AISearchPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
