@@ -19,6 +19,7 @@ const SchedulePage = lazy(() => import('../../pages/schedule'));
 const ProfilePage = lazy(() => import('../../pages/profile'));
 const WalletPage = lazy(() => import('../../pages/wallet'));
 const LoginPage = lazy(() => import('../../pages/auth'));
+const SessionPage = lazy(() => import('../../pages/session'));
 const NotFoundPage = lazy(() => import('../../pages/not-found'));
 
 function PageLoader() {
@@ -56,6 +57,7 @@ export function AppRouter() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/session/:roomId" element={<SessionPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

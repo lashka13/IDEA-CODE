@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Wallet, LogIn, LogOut, Menu, X, Plus, Bell, ShoppingCart, MessageCircle, FolderGit2, Users, Trophy, Zap, Settings } from 'lucide-react';
+import { Search, LogIn, LogOut, Menu, X, Bell, ShoppingCart, MessageCircle, FolderGit2, Users, Trophy, Zap, Settings } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
 import { selectCurrentUser, selectIsAuthenticated, logout } from '../../../features/auth';
 import { CodeCoinIcon, Button } from '../../../shared/ui';
@@ -10,6 +10,7 @@ import { APP_NAME } from '../../../shared/config/constants';
 import { HeaderSearch } from './HeaderSearch';
 import { mockNotifications, type AppNotification } from '../../../shared/api/mocks/notifications';
 import { timeAgo } from '../../../shared/lib';
+import Wallet from '../../../pages/wallet';
 
 const NOTIF_ICONS: Record<AppNotification['type'], typeof Bell> = {
   purchase: ShoppingCart,
@@ -140,13 +141,9 @@ export function Header() {
   }, [location.pathname]);
 
   const navItems = [
-    { path: '/catalog', label: 'Каталог' },
+    { path: '/catalog', label: 'Обучение' },
     { path: '/communities', label: 'Сообщества' },
-    { path: '/chat', label: 'Чат' },
-    { path: '/tasks', label: 'Задачи' },
     { path: '/mentors', label: 'Менторы' },
-    { path: '/projects', label: 'Проекты' },
-    { path: '/roadmap', label: 'Роадмап' },
     { path: '/schedule', label: 'Расписание' },
   ];
 
@@ -193,7 +190,7 @@ export function Header() {
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Search */}
             <button
               onClick={() => setSearchOpen(true)}
@@ -202,61 +199,60 @@ export function Header() {
               <Search size={18} />
             </button>
 
-            {/* Notifications */}
-            {isAuth && (
-              <div className="relative">
-                <button
-                  onClick={() => setNotifOpen(!notifOpen)}
-                  className="relative p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
-                >
-                  <Bell size={18} />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-accent-green flex items-center justify-center">
-                      <span className="text-[8px] font-bold text-surface-900">{unreadCount}</span>
-                    </span>
-                  )}
-                </button>
-                <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} />
-              </div>
-            )}
-
             {isAuth && user ? (
-              <>
-                {/* Add material */}
-                <Link
-                  to="/add-material"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 border border-accent-green/20 hover:bg-accent-green/20 transition-all duration-300 text-accent-green text-sm font-medium"
-                >
-                  <Plus size={14} />
-                  <span className="hidden lg:inline">Добавить</span>
-                </Link>
+              <div className="flex items-center gap-1.5">
+                {/* Notifications */}
+                <div className="relative">
+                  <button
+                    onClick={() => setNotifOpen(!notifOpen)}
+                    className="relative p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+                  >
+                    <Bell size={18} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-accent-green flex items-center justify-center ring-2 ring-surface-900">
+                        <span className="text-[8px] font-bold text-surface-900">{unreadCount}</span>
+                      </span>
+                    )}
+                  </button>
+                  <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} />
+                </div>
 
-                {/* Coins */}
-                <Link
-                  to="/wallet"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-accent-green/20 transition-all duration-300"
-                >
-                  <CodeCoinIcon size={14} />
-                  <span className="text-sm font-medium text-accent-green">{user.codeCoins}</span>
-                </Link>
+                {/* Profile block */}
+                <div className="hidden sm:flex items-center ml-1 rounded-xl bg-white/[0.04] border border-white/[0.08] overflow-hidden">
+                  <Link
+                    to="/profile"
+                    className="flex items-center pl-2 pr-2 py-1.5 hover:bg-white/[0.05] transition-all duration-200 group"
+                  >
+                    <div className="relative">
+                      <img src={user.avatarUrl} alt="" className="w-7 h-7 rounded-lg ring-1 ring-white/10 group-hover:ring-accent-green/30 transition-all" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent-green ring-[1.5px] ring-surface-900" />
+                    </div>
+                  </Link>
+                  <div className="w-px h-5 bg-white/[0.08]" />
+                  <Link
+                    to="/wallet"
+                    className="flex items-center gap-1.5 px-2.5 py-2 hover:bg-white/[0.05] transition-all duration-200"
+                  >
+                    <CodeCoinIcon size={12} />
+                    <span className="text-xs font-bold text-accent-green">{user.codeCoins}</span>
+                  </Link>
+                  <div className="w-px h-5 bg-white/[0.08]" />
+                  <button
+                    onClick={() => { dispatch(logout()); navigate('/login'); }}
+                    className="px-2.5 py-2 text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
 
-                {/* Profile */}
+                {/* Mobile: compact profile */}
                 <Link
                   to="/profile"
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/[0.06] transition-all duration-200"
+                  className="sm:hidden p-1.5 rounded-xl hover:bg-white/[0.06] transition-all"
                 >
                   <img src={user.avatarUrl} alt="" className="w-7 h-7 rounded-lg" />
-                  <span className="text-sm font-medium hidden lg:block">{user.name.split(' ')[0]}</span>
                 </Link>
-
-                {/* Logout */}
-                <button
-                  onClick={() => { dispatch(logout()); navigate('/login'); }}
-                  className="p-2 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
-                >
-                  <LogOut size={16} />
-                </button>
-              </>
+              </div>
             ) : (
               <Button
                 variant="primary"
@@ -308,7 +304,7 @@ export function Header() {
                   to="/wallet"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-white/50"
                 >
-                  <Wallet size={16} /> Кошелёк
+                  <Wallet /> Кошелёк
                   <span className="ml-auto text-accent-green">{user?.codeCoins} CC</span>
                 </Link>
               )}

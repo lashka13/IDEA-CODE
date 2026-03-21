@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { motion, } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Radio,
   Video,
@@ -13,14 +13,20 @@ import {
   ChevronRight,
   BookOpen,
   ExternalLink,
-  
+  CheckCircle2,
+  XCircle,
+  UserCheck,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { PageTransition, Button,  Modal } from '../../../shared/ui';
+import { Link, useNavigate } from 'react-router-dom';
+import { PageTransition, Button, Modal, Badge, GlassCard } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { mockScheduleEvents, type ScheduleEvent, type EventType } from '../../../shared/api/mocks/schedule';
-import { useAppSelector } from '../../../app/store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
 import { selectPurchasedIds } from '../../../features/buy-material/model/purchaseSlice';
+import { selectCurrentUser } from '../../../features/auth';
+import { selectAllSessions, updateSessionStatus } from '../../../features/mentor-sessions';
+import { selectAllUsers } from '../../../entities/user';
+import { mockMentors } from '../../../shared/api/mocks/mentors';
 
 const EVENT_TYPE_META: Record<EventType, { icon: typeof Radio; label: string; bgColor: string; textColor: string; borderColor: string }> = {
   stream: { icon: Radio, label: 'Стрим', bgColor: 'bg-red-500/10', textColor: 'text-red-400', borderColor: 'border-l-red-500' },
@@ -208,6 +214,128 @@ function EventDetail({ event, }: { event: ScheduleEvent; onClose: () => void }) 
   );
 }
 
+// ---- Mentor Sessions Panel ----
+function MentorSessionsPanel() {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const currentUser = useAppSelector(selectCurrentUser);
+  const allSessions = useAppSelector(selectAllSessions);
+  const allUsers = useAppSelector(selectAllUsers);
+
+  if (!currentUser) return null;
+
+  // Sessions where I'm mentor (need to approve)
+  const isMentor = !!currentUser.mentorId;
+  const pendingSessions = isMentor
+    ? allSessions.filter((s) => s.mentorId === currentUser.mentorId && s.status === 'pending')
+    : [];
+  const approvedSessionsAsMentor = isMentor
+    ? allSessions.filter((s) => s.mentorId === currentUser.mentorId && s.status === 'approved')
+    : [];
+
+  // Sessions where I'm student
+  const mySessions = allSessions.filter((s) => s.studentId === currentUser.id);
+  const myApproved = mySessions.filter((s) => s.status === 'approved');
+  const myPending = mySessions.filter((s) => s.status === 'pending');
+
+  const allApproved = [...approvedSessionsAsMentor, ...myApproved];
+  const hasSessions = pendingSessions.length > 0 || allApproved.length > 0 || myPending.length > 0;
+
+  if (!hasSessions) return null;
+
+  return (
+    <div className="flex-shrink-0 mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <UserCheck size={14} className="text-accent-cyan" />
+        <span className="text-xs font-semibold text-white/50">Менторские сессии</span>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {/* Pending sessions (for mentor to approve) */}
+        {pendingSessions.map((session) => {
+          const student = allUsers.find((u) => u.id === session.studentId);
+          return (
+            <GlassCard key={session.id} className="flex-shrink-0 w-[280px] !p-3">
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="orange" size="sm">Ожидает одобрения</Badge>
+                <span className="text-[10px] text-white/20">
+                  {new Date(session.scheduledAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                {student && <img src={student.avatarUrl} alt="" className="w-6 h-6 rounded-md" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{student?.name}</p>
+                  <p className="text-[10px] text-white/30">{session.topic}</p>
+                </div>
+              </div>
+              {session.comment && (
+                <p className="text-[10px] text-white/25 mb-2 line-clamp-2">{session.comment}</p>
+              )}
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => dispatch(updateSessionStatus({ sessionId: session.id, status: 'approved' }))}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-accent-green/10 border border-accent-green/20 text-accent-green text-[10px] font-medium hover:bg-accent-green/20 transition-colors"
+                >
+                  <CheckCircle2 size={10} /> Одобрить
+                </button>
+                <button
+                  onClick={() => dispatch(updateSessionStatus({ sessionId: session.id, status: 'rejected' }))}
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-medium hover:bg-red-500/20 transition-colors"
+                >
+                  <XCircle size={10} /> Отклонить
+                </button>
+              </div>
+            </GlassCard>
+          );
+        })}
+
+        {/* Approved sessions — can join call */}
+        {allApproved.map((session) => {
+          const otherUserId = session.studentId === currentUser.id ? session.mentorId : session.studentId;
+          const mentor = mockMentors.find((m) => m.id === session.mentorId);
+          const student = allUsers.find((u) => u.id === session.studentId);
+          const otherName = session.studentId === currentUser.id ? mentor?.name : student?.name;
+          return (
+            <GlassCard key={session.id} className="flex-shrink-0 w-[280px] !p-3">
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="green" size="sm">Подтверждено</Badge>
+                <span className="text-[10px] text-white/20">
+                  {new Date(session.scheduledAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} {new Date(session.scheduledAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <p className="text-xs font-medium mb-1">{session.topic}</p>
+              <p className="text-[10px] text-white/30 mb-2">с {otherName}</p>
+              <button
+                onClick={() => navigate(`/session/${session.roomId}`)}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan text-xs font-medium hover:bg-accent-cyan/20 transition-colors"
+              >
+                <Video size={12} /> Перейти в звонок
+              </button>
+            </GlassCard>
+          );
+        })}
+
+        {/* My pending sessions (as student) */}
+        {myPending.map((session) => {
+          const mentor = mockMentors.find((m) => m.id === session.mentorId);
+          return (
+            <GlassCard key={session.id} className="flex-shrink-0 w-[280px] !p-3">
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="default" size="sm">Ожидает ответа</Badge>
+                <span className="text-[10px] text-white/20">
+                  {new Date(session.scheduledAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                </span>
+              </div>
+              <p className="text-xs font-medium mb-1">{session.topic}</p>
+              <p className="text-[10px] text-white/30">Ментор: {mentor?.name}</p>
+            </GlassCard>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ---- Main Calendar Page ----
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date('2025-01-15'));
@@ -239,12 +367,12 @@ export default function SchedulePage() {
 
   return (
     <PageTransition>
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-24 pb-4">
+      <div className="h-[calc(100vh-80px)] flex flex-col px-4 sm:px-6 pt-24 pb-2 overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-3 flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-bold mb-1">Расписание</h1>
-            <p className="text-sm text-white/40">Стримы, вебинары и воркшопы от авторов курсов</p>
+            <h1 className="text-xl font-bold mb-0.5">Расписание</h1>
+            <p className="text-xs text-white/40">Стримы, вебинары и воркшопы от авторов курсов</p>
           </div>
           {liveCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
@@ -255,7 +383,7 @@ export default function SchedulePage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-3 flex-shrink-0">
           {/* Navigation */}
           <div className="flex items-center gap-1">
             <button
@@ -318,7 +446,7 @@ export default function SchedulePage() {
         </div>
 
         {/* Calendar Grid */}
-        <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.01]">
+        <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.01] flex-1 flex flex-col min-h-0">
           {/* Day headers */}
           <div className={cn(
             'grid border-b border-white/[0.06]',
@@ -359,7 +487,7 @@ export default function SchedulePage() {
           </div>
 
           {/* Time grid */}
-          <div className="overflow-y-auto max-h-[calc(100vh-320px)] custom-scrollbar">
+          <div className="overflow-y-auto flex-1 custom-scrollbar">
             <div className={cn(
               'grid relative',
               view === 'week' ? 'grid-cols-[60px_repeat(7,1fr)]' : 'grid-cols-[60px_1fr]'
@@ -418,45 +546,6 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        {/* Upcoming sidebar for today */}
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {mockScheduleEvents
-            .filter((ev) => ev.isLive || new Date(ev.startsAt) >= new Date('2025-01-15'))
-            .sort((a, b) => {
-              if (a.isLive && !b.isLive) return -1;
-              if (!a.isLive && b.isLive) return 1;
-              return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
-            })
-            .slice(0, 4)
-            .map((ev) => {
-              const meta = EVENT_TYPE_META[ev.type];
-              const Icon = meta.icon;
-              const d = new Date(ev.startsAt);
-              return (
-                <button
-                  key={ev.id}
-                  onClick={() => setSelectedEvent(ev)}
-                  className="text-left p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/10 hover:bg-white/[0.03] transition-all group"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', meta.bgColor)}>
-                      <Icon size={12} className={meta.textColor} />
-                    </div>
-                    {ev.isLive && (
-                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 text-[9px] font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />LIVE
-                      </span>
-                    )}
-                    <span className="text-[10px] text-white/20 ml-auto">
-                      {d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} · {d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-semibold group-hover:text-accent-cyan transition-colors line-clamp-1">{ev.title}</h4>
-                  <p className="text-[10px] text-white/25 mt-0.5">{ev.hostName} · {formatDuration(ev.durationMinutes)}</p>
-                </button>
-              );
-            })}
-        </div>
       </div>
 
       {/* Event detail modal */}

@@ -137,6 +137,24 @@ export const mockUsers: User[] = [
     uploadsCount: 4,
     purchasesCount: 12,
   },
+  {
+    id: 'user-mentor',
+    name: 'Алексей Козлов',
+    username: 'alex_mentor',
+    avatarUrl: 'https://api.dicebear.com/9.x/notionists/svg?seed=AlexMentor&backgroundColor=FF5722',
+    bio: 'Senior Frontend Engineer в T-Bank. Веду фронтенд команду из 8 человек. Ментор на платформе.',
+    rating: 4.9,
+    codeCoins: 5200,
+    level: 18,
+    levelTitle: 'Ментор',
+    techStack: ['React', 'TypeScript', 'Next.js', 'GraphQL', 'Webpack'],
+    skills: { Frontend: 98, Backend: 60, DevOps: 40, 'Data Science': 15, Mobile: 25, Security: 20 },
+    achievementIds: ['ach-1', 'ach-2', 'ach-3', 'ach-4', 'ach-5', 'ach-7', 'ach-8'],
+    joinedAt: '2025-06-01',
+    uploadsCount: 56,
+    purchasesCount: 10,
+    mentorId: 'mentor-1',
+  },
 ];
 
-export const testUsers = mockUsers.slice(0, 4);
+export const testUsers = [...mockUsers.slice(0, 4), mockUsers[mockUsers.length - 1]];

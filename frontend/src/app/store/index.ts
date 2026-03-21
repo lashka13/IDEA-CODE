@@ -9,6 +9,7 @@ import { searchReducer } from '../../features/search';
 import { filterReducer } from '../../features/filter-materials';
 import { purchaseReducer } from '../../features/buy-material';
 import { courseProgressReducer } from '../../features/course-progress';
+import { mentorSessionsReducer } from '../../features/mentor-sessions';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     filters: filterReducer,
     purchase: purchaseReducer,
     courseProgress: courseProgressReducer,
+    mentorSessions: mentorSessionsReducer,
   },
 });
 

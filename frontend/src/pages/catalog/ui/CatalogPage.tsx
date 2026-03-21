@@ -1,14 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { SlidersHorizontal, X, Plus } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
 import { selectAllMaterials } from '../../../entities/material';
 import { selectAllUsers } from '../../../entities/user';
+import { selectIsAuthenticated } from '../../../features/auth';
 import { selectFilters, toggleLanguage, toggleDifficulty, toggleFormat, setSortBy, clearFilters } from '../../../features/filter-materials';
 import { MaterialCard } from '../../../entities/material/ui/MaterialCard';
 import { PageTransition, Tag, StaggerContainer, staggerItemVariants, GlassCard } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import type { Language, Difficulty, Format, SortBy } from '../../../shared/types';
+
+const TasksPage = lazy(() => import('../../tasks'));
 
 const LANGUAGES: { value: Language; label: string }[] = [
   { value: 'python', label: 'Python' },
@@ -40,15 +44,29 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'price-desc', label: 'Дороже' },
 ];
 
+type MaterialCategory = 'all' | 'courses' | 'notes' | 'tasks';
+
+const COURSE_FORMATS: Format[] = ['video', 'presentation'];
+const NOTE_FORMATS: Format[] = ['article', 'code'];
+
 export default function CatalogPage() {
   const dispatch = useAppDispatch();
   const materials = useAppSelector(selectAllMaterials);
   const users = useAppSelector(selectAllUsers);
   const filters = useAppSelector(selectFilters);
+  const isAuth = useAppSelector(selectIsAuthenticated);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [category, setCategory] = useState<MaterialCategory>('all');
 
   const filtered = useMemo(() => {
     let result = [...materials];
+
+    // Category filter
+    if (category === 'courses') {
+      result = result.filter((m) => COURSE_FORMATS.includes(m.format));
+    } else if (category === 'notes') {
+      result = result.filter((m) => NOTE_FORMATS.includes(m.format));
+    }
 
     if (filters.languages.length > 0) {
       result = result.filter((m) => filters.languages.includes(m.language));
@@ -79,125 +97,167 @@ export default function CatalogPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold">Каталог</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold">Обучение</h1>
             <p className="text-white/30 text-sm mt-1">{filtered.length} материалов</p>
           </div>
-          <div className="flex items-center gap-2">
+          {category !== 'tasks' && (
+            <div className="flex items-center gap-2">
+              {isAuth && (
+                <Link
+                  to="/add-material"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent-green/10 border border-accent-green/20 hover:bg-accent-green/20 transition-all duration-300 text-accent-green text-sm font-medium"
+                >
+                  <Plus size={14} />
+                  <span className="hidden sm:inline">Добавить материал</span>
+                </Link>
+              )}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all',
+                  sidebarOpen ? 'bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20' : 'glass glass-hover text-white/60'
+                )}
+              >
+                <SlidersHorizontal size={14} />
+                <span className="hidden sm:inline">Фильтры</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Category tabs */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-fit mb-6">
+          {([
+            { value: 'all' as const, label: 'Все материалы' },
+            { value: 'courses' as const, label: 'Курсы' },
+            { value: 'notes' as const, label: 'Конспекты' },
+            { value: 'tasks' as const, label: 'Задачи' },
+          ]).map((cat) => (
             <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              key={cat.value}
+              onClick={() => setCategory(cat.value)}
               className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all',
-                sidebarOpen ? 'bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20' : 'glass glass-hover text-white/60'
+                'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                category === cat.value
+                  ? 'bg-white/[0.08] text-white shadow-sm'
+                  : 'text-white/35 hover:text-white/60'
               )}
             >
-              <SlidersHorizontal size={14} />
-              <span className="hidden sm:inline">Фильтры</span>
+              {cat.label}
             </button>
-          </div>
-        </div>
-
-        {/* Sort */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-          {SORT_OPTIONS.map((opt) => (
-            <Tag
-              key={opt.value}
-              active={filters.sortBy === opt.value}
-              onClick={() => dispatch(setSortBy(opt.value))}
-            >
-              {opt.label}
-            </Tag>
           ))}
-          {hasFilters && (
-            <button
-              onClick={() => dispatch(clearFilters())}
-              className="flex items-center gap-1 px-3 py-1 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-            >
-              <X size={12} /> Сбросить
-            </button>
-          )}
         </div>
 
-        <div className="flex gap-6">
-          {/* Sidebar */}
-          {sidebarOpen && (
-            <motion.aside
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="hidden md:block w-64 flex-shrink-0"
-            >
-              <GlassCard className="sticky top-24 space-y-6">
-                {/* Language filter */}
-                <div>
-                  <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Язык</h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {LANGUAGES.map((lang) => (
-                      <Tag
-                        key={lang.value}
-                        active={filters.languages.includes(lang.value)}
-                        onClick={() => dispatch(toggleLanguage(lang.value))}
-                      >
-                        {lang.label}
-                      </Tag>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Difficulty filter */}
-                <div>
-                  <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Уровень</h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DIFFICULTIES.map((d) => (
-                      <Tag
-                        key={d.value}
-                        active={filters.difficulties.includes(d.value)}
-                        onClick={() => dispatch(toggleDifficulty(d.value))}
-                      >
-                        {d.label}
-                      </Tag>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Format filter */}
-                <div>
-                  <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Формат</h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {FORMATS.map((f) => (
-                      <Tag
-                        key={f.value}
-                        active={filters.formats.includes(f.value)}
-                        onClick={() => dispatch(toggleFormat(f.value))}
-                      >
-                        {f.label}
-                      </Tag>
-                    ))}
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.aside>
-          )}
-
-          {/* Grid */}
-          <div className="flex-1">
-            <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((material) => (
-                <motion.div key={material.id} variants={staggerItemVariants}>
-                  <MaterialCard
-                    material={material}
-                    author={users.find((u) => u.id === material.authorId)}
-                  />
-                </motion.div>
+        {category === 'tasks' ? (
+          <Suspense fallback={<div className="text-center py-20 text-white/20">Загрузка...</div>}>
+            <TasksPage />
+          </Suspense>
+        ) : (
+          <>
+            {/* Sort */}
+            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+              {SORT_OPTIONS.map((opt) => (
+                <Tag
+                  key={opt.value}
+                  active={filters.sortBy === opt.value}
+                  onClick={() => dispatch(setSortBy(opt.value))}
+                >
+                  {opt.label}
+                </Tag>
               ))}
-            </StaggerContainer>
+              {hasFilters && (
+                <button
+                  onClick={() => dispatch(clearFilters())}
+                  className="flex items-center gap-1 px-3 py-1 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <X size={12} /> Сбросить
+                </button>
+              )}
+            </div>
 
-            {filtered.length === 0 && (
-              <div className="text-center py-20">
-                <p className="text-white/30 text-lg">Ничего не найдено</p>
-                <p className="text-white/20 text-sm mt-1">Попробуйте изменить фильтры</p>
+            <div className="flex gap-6">
+              {/* Sidebar */}
+              {sidebarOpen && (
+                <motion.aside
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="hidden md:block w-64 flex-shrink-0"
+                >
+                  <GlassCard className="sticky top-24 space-y-6">
+                    {/* Language filter */}
+                    <div>
+                      <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Язык</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {LANGUAGES.map((lang) => (
+                          <Tag
+                            key={lang.value}
+                            active={filters.languages.includes(lang.value)}
+                            onClick={() => dispatch(toggleLanguage(lang.value))}
+                          >
+                            {lang.label}
+                          </Tag>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Difficulty filter */}
+                    <div>
+                      <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Уровень</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {DIFFICULTIES.map((d) => (
+                          <Tag
+                            key={d.value}
+                            active={filters.difficulties.includes(d.value)}
+                            onClick={() => dispatch(toggleDifficulty(d.value))}
+                          >
+                            {d.label}
+                          </Tag>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Format filter */}
+                    <div>
+                      <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Формат</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {FORMATS.map((f) => (
+                          <Tag
+                            key={f.value}
+                            active={filters.formats.includes(f.value)}
+                            onClick={() => dispatch(toggleFormat(f.value))}
+                          >
+                            {f.label}
+                          </Tag>
+                        ))}
+                      </div>
+                    </div>
+                  </GlassCard>
+                </motion.aside>
+              )}
+
+              {/* Grid */}
+              <div className="flex-1">
+                <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filtered.map((material) => (
+                    <motion.div key={material.id} variants={staggerItemVariants}>
+                      <MaterialCard
+                        material={material}
+                        author={users.find((u) => u.id === material.authorId)}
+                      />
+                    </motion.div>
+                  ))}
+                </StaggerContainer>
+
+                {filtered.length === 0 && (
+                  <div className="text-center py-20">
+                    <p className="text-white/30 text-lg">Ничего не найдено</p>
+                    <p className="text-white/20 text-sm mt-1">Попробуйте изменить фильтры</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </PageTransition>
   );

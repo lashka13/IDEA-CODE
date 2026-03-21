@@ -35,6 +35,7 @@ export interface User {
   joinedAt: string;
   uploadsCount: number;
   purchasesCount: number;
+  mentorId?: string;
 }
 
 export interface Community {
