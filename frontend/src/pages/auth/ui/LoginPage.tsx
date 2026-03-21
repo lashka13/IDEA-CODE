@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Star, UserPlus } from 'lucide-react';
+import { LogIn, Star } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { loginAsync, selectIsAuthenticated, selectAuthLoading, selectAuthError, clearError } from '../../../features/auth';
 import { testUsers } from '../../../shared/api/mocks';
