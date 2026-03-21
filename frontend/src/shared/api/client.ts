@@ -317,6 +317,13 @@ class ApiClient {
     );
   }
 
+  async reviewCode(taskId: string, code: string, language: string) {
+    return this.request<{ review: string }>(
+      `/tasks/${taskId}/review`,
+      { method: 'POST', body: JSON.stringify({ code, language }) },
+    );
+  }
+
   // Challenges
   async getChallenges(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();

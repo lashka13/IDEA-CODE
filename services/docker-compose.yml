@@ -140,6 +140,8 @@ services:
       AUTH_SERVICE_URL: http://auth_service:8000
       SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
       PISTON_URL: http://piston:2000
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-google/gemma-2-9b-it:free}
     depends_on:
       postgres:
         condition: service_healthy

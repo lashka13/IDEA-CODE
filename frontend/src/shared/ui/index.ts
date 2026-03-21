@@ -13,3 +13,4 @@ export { StaggerContainer, staggerItemVariants } from './StaggerContainer';
 export { Tabs } from './Tabs';
 export { CodeCoinIcon } from './CodeCoinIcon';
 export { Modal } from './Modal';
+export { OnboardingTour } from './OnboardingTour';

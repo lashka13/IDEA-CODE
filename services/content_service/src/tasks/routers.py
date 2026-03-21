@@ -10,6 +10,8 @@ from src.tasks.models import Task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 PISTON_URL = os.getenv("PISTON_URL", "http://piston:2000")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "google/gemma-2-9b-it:free")
 
 # Piston language mapping: frontend value → (language, version)
 LANGUAGE_MAP = {
@@ -221,3 +223,70 @@ async def submit_code(
         "passed_count": sum(1 for r in results if r["passed"]),
         "results": results,
     }
+
+
+class ReviewCodeRequest(BaseModel):
+    code: str
+    language: str = "python"
+
+
+@router.post("/{task_id}/review")
+async def review_code(
+    task_id: str,
+    body: ReviewCodeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """AI code review using OpenRouter LLM."""
+    result = await db.execute(select(Task).where(Task.id == task_id))
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(status_code=503, detail="AI review unavailable: no API key")
+
+    prompt = f"""Ты — опытный Senior-разработчик и ментор. Проанализируй решение задачи и дай краткий, полезный фидбек.
+
+Задача: {task.title}
+Описание: {task.description}
+Сложность: {task.difficulty}
+Язык: {body.language}
+
+Код решения:
+```{body.language}
+{body.code}
+```
+
+Дай фидбек в формате:
+1. **Сложность алгоритма**: O(?) по времени и памяти
+2. **Что хорошо**: 1-2 пункта
+3. **Что улучшить**: 1-2 конкретных совета с примерами кода
+4. **Оценка**: число от 1 до 10
+
+Отвечай кратко, по делу, на русском. Максимум 300 слов."""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": LLM_MODEL,
+                    "messages": [
+                        {"role": "system", "content": "Ты — AI-ментор на образовательной платформе для IT-специалистов."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "max_tokens": 800,
+                    "temperature": 0.5,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            review = data["choices"][0]["message"]["content"]
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI review failed: {str(e)}")
+
+    return {"review": review}

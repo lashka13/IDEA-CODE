@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import {
   ChevronRight,
   ChevronLeft,
@@ -16,7 +17,9 @@ import {
   Zap,
   Users,
   Timer,
-
+  Bot,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon } from '../../../shared/ui';
 import { cn, } from '../../../shared/lib';
@@ -37,6 +40,23 @@ function CodeIDE({
   const [status, setStatus] = useState<SubmissionStatus>('idle');
   const [activeTestCase, setActiveTestCase] = useState(0);
   const [language, setLanguage] = useState('python');
+  const [reviewText, setReviewText] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+
+  const handleReview = async () => {
+    setReviewLoading(true);
+    setShowReview(true);
+    setReviewText('');
+    try {
+      const res = await apiClient.reviewCode(task.id, code, language);
+      setReviewText(res.review);
+    } catch {
+      setReviewText('AI-ревью временно недоступно. Попробуйте позже.');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
 
   const handleRun = async () => {
     setStatus('running');
@@ -97,11 +117,25 @@ function CodeIDE({
       }
       setOutput(lines.join('\n'));
       setStatus(res.all_passed ? 'accepted' : 'wrong');
+      if (res.all_passed) {
+        fireConfetti();
+      }
     } catch (e: any) {
       setStatus('error');
       setOutput(`❌ Ошибка: ${e.message || 'Сервис выполнения кода недоступен'}`);
     }
   };
+
+  const fireConfetti = useCallback(() => {
+    const duration = 2000;
+    const end = Date.now() + duration;
+    const frame = () => {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: ['#39FF14', '#00E5FF', '#FFD700'] });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: ['#39FF14', '#00E5FF', '#FFD700'] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
@@ -133,6 +167,16 @@ function CodeIDE({
           </Button>
           <Button size="sm" onClick={handleSubmit} disabled={status === 'running'} loading={status === 'running'}>
             <Send size={12} /> Отправить
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReview}
+            disabled={reviewLoading}
+            className="!text-purple-400 hover:!bg-purple-500/10"
+          >
+            {reviewLoading ? <Sparkles size={12} className="animate-spin" /> : <Bot size={12} />}
+            AI Review
           </Button>
         </div>
       </div>
@@ -184,6 +228,43 @@ function CodeIDE({
           </div>
         </div>
       </div>
+
+      {/* AI Review Panel */}
+      <AnimatePresence>
+        {showReview && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t border-purple-500/20 bg-purple-500/[0.03] overflow-hidden"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-purple-400">
+                  <Sparkles size={14} />
+                  AI Code Review
+                </div>
+                <button
+                  onClick={() => setShowReview(false)}
+                  className="p-1 rounded hover:bg-white/[0.04] text-white/30 hover:text-white/60 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              {reviewLoading ? (
+                <div className="flex items-center gap-2 text-xs text-white/30">
+                  <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                  AI анализирует ваш код...
+                </div>
+              ) : (
+                <div className="text-xs text-white/60 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
+                  {reviewText}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
