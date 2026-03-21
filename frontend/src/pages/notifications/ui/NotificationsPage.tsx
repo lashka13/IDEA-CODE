@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectIsAuthenticated } from '../../../features/auth';
-import { PageTransition, GlassCard, Button, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
+import { PageTransition, Button, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
 import { cn, timeAgo } from '../../../shared/lib';
 import { apiClient } from '../../../shared/api/client';
 

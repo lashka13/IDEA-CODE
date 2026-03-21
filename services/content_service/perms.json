@@ -1,0 +1,8 @@
+{
+  "service": "content_service",
+  "kafka": {
+    "produces": ["material.created", "material.purchased", "comment.created"],
+    "consumes": []
+  },
+  "depends_on": ["auth_service"]
+}

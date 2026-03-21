@@ -6,7 +6,7 @@ import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllCommunities } from '../../../entities/community';
 import { selectAllMaterials } from '../../../entities/material';
 import { selectAllUsers } from '../../../entities/user';
-import { selectCurrentUser, selectIsAuthenticated } from '../../../features/auth';
+import { selectIsAuthenticated } from '../../../features/auth';
 import { MaterialCard } from '../../../entities/material/ui/MaterialCard';
 import { PageTransition, Tabs, GlassCard, Button, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
 import { timeAgo } from '../../../shared/lib';
@@ -22,7 +22,6 @@ export default function CommunityDetailPage() {
   const communities = useAppSelector(selectAllCommunities);
   const materials = useAppSelector(selectAllMaterials);
   const users = useAppSelector(selectAllUsers);
-  const currentUser = useAppSelector(selectCurrentUser);
   const isAuth = useAppSelector(selectIsAuthenticated);
   const [activeTab, setActiveTab] = useState('discussions');
 

@@ -1,0 +1,14 @@
+{
+  "service": "auth_service",
+  "kafka": {
+    "produces": ["user.registered"],
+    "consumes": ["achievement.unlocked"]
+  },
+  "internal_api": {
+    "exposes": [
+      "GET /api/internal/users/{user_id}",
+      "POST /api/internal/users/{user_id}/deduct-coins",
+      "POST /api/internal/users/{user_id}/add-coins"
+    ]
+  }
+}

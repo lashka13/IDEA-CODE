@@ -1,0 +1,8 @@
+{
+  "service": "notification_service",
+  "kafka": {
+    "produces": [],
+    "consumes": ["user.registered", "material.purchased", "comment.created", "community.joined", "achievement.unlocked"]
+  },
+  "depends_on": []
+}

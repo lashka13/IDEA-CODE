@@ -5,3 +5,4 @@ dist/
 .venv/
 .env
 .pytest_cache/
+.claude/
