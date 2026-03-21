@@ -98,4 +98,31 @@ jobs:
               cd /opt/idea-code
             fi
             docker compose -f services/docker-compose.yml up -d --build
+            docker compose -f services/docker-compose.yml up -d --force-recreate nginx
+
+            # Wait for services to be healthy
+            sleep 15
+
+            # Seed databases (skips existing records, safe to run on every deploy)
+            # Auth service seeds
+            docker cp services/auth_service/seed.py services-auth_service-1:/app/seed.py
+            docker exec services-auth_service-1 python seed.py
+            docker cp services/auth_service/seed_mentors.py services-auth_service-1:/app/seed_mentors.py
+            docker exec services-auth_service-1 python seed_mentors.py
+
+            # Content service seeds
+            docker cp services/content_service/seed.py services-content_service-1:/app/seed.py
+            docker exec services-content_service-1 python seed.py
+            docker cp services/content_service/seed_extra.py services-content_service-1:/app/seed_extra.py
+            docker exec services-content_service-1 python seed_extra.py
+
+            # Community service seeds
+            docker cp services/community_service/seed.py services-community_service-1:/app/seed.py
+            docker exec services-community_service-1 python seed.py
+            docker cp services/community_service/seed_projects.py services-community_service-1:/app/seed_projects.py
+            docker exec services-community_service-1 python seed_projects.py
+
+            # Chat service seed
+            docker cp services/chat_service/seed.py services-chat_service-1:/app/seed.py
+            docker exec services-chat_service-1 python seed.py
           ENDSSH

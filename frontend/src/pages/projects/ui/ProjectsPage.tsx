@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -18,18 +18,20 @@ import { selectIsAuthenticated } from '../../../features/auth';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon, Modal } from '../../../shared/ui';
 import { cn, formatDate } from '../../../shared/lib';
 import {
-  mockProjects,
   ROLE_LABELS,
   ROLE_COLORS,
   STATUS_LABELS,
   type Project,
+  type ProjectMember,
+  type ProjectTeamSlot,
   type ProjectRole,
   type ProjectStatus,
 } from '../../../shared/api/mocks/projects';
-import { mockMentors } from '../../../shared/api/mocks/mentors';
+import { type Mentor } from '../../../shared/api/mocks/mentors';
+import { apiClient } from '../../../shared/api/client';
 
-function ProjectCard({ project, onClick }: { project: Project; onClick: () => void }) {
-  const mentor = mockMentors.find((m) => m.id === project.mentorId);
+function ProjectCard({ project, mentors, onClick }: { project: Project; mentors: Mentor[]; onClick: () => void }) {
+  const mentor = mentors.find((m) => m.id === project.mentorId);
   const totalSlots = project.teamSlots.reduce((s, t) => s + t.total, 0);
   const filledSlots = project.teamSlots.reduce((s, t) => s + t.filled, 0);
 
@@ -130,10 +132,10 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   );
 }
 
-function ProjectDetail({ project, onBack }: { project: Project; onBack: () => void }) {
+function ProjectDetail({ project, mentors, onBack }: { project: Project; mentors: Mentor[]; onBack: () => void }) {
   const users = useAppSelector(selectAllUsers);
   const isAuth = useAppSelector(selectIsAuthenticated);
-  const mentor = mockMentors.find((m) => m.id === project.mentorId);
+  const mentor = mentors.find((m) => m.id === project.mentorId);
   const [joinModal, setJoinModal] = useState(false);
   const [selectedRole, setSelectedRole] = useState<ProjectRole | null>(null);
   const [joinConfirmed, setJoinConfirmed] = useState(false);
@@ -410,15 +412,91 @@ function ProjectDetail({ project, onBack }: { project: Project; onBack: () => vo
 }
 
 export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
 
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    const mapMentor = (m: any): Mentor => ({
+      id: m.id,
+      name: m.name,
+      avatarUrl: m.avatar_url,
+      title: m.title,
+      company: m.company,
+      experience: m.experience,
+      bio: m.bio,
+      techStack: m.tech_stack,
+      rating: m.rating,
+      reviewCount: m.review_count,
+      sessionsCompleted: m.sessions_completed,
+      pricePerHour: m.price_per_hour,
+      available: m.available,
+      specializations: m.specializations,
+      languages: m.languages,
+    });
+
+    const mapProject = (p: any): Project => {
+      const members: ProjectMember[] = (p.members ?? []).map((m: any) => ({
+        userId: m.userId ?? m.user_id,
+        role: m.role,
+        isTeamLead: m.isTeamLead ?? m.is_team_lead ?? false,
+      }));
+      const rawSlots = p.team_slots ?? p.teamSlots ?? [];
+      const teamSlots: ProjectTeamSlot[] = rawSlots.map((s: any) => ({
+        role: s.role,
+        label: s.label,
+        total: s.total,
+        filled: members.filter((m: ProjectMember) => m.role === s.role).length,
+      }));
+      return {
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        coverUrl: p.cover_url ?? p.coverUrl ?? '',
+        difficulty: p.difficulty,
+        status: p.status,
+        mentorId: p.mentor_id ?? p.mentorId,
+        techStack: p.tech_stack ?? p.techStack ?? [],
+        teamSlots,
+        members,
+        githubUrl: p.github_url ?? p.githubUrl,
+        deadline: p.deadline,
+        rewardCoins: p.reward_coins ?? p.rewardCoins ?? 0,
+        tags: p.tags ?? [],
+        createdAt: p.created_at ?? p.createdAt ?? '',
+        tasks: p.tasks ?? [],
+      };
+    };
+
+    Promise.all([
+      apiClient.getProjects().catch(() => null),
+      apiClient.getMentors().catch(() => null),
+    ]).then(([projectsData, mentorsData]) => {
+      if (cancelled) return;
+      if (projectsData) {
+        setProjects(projectsData.map(mapProject));
+      }
+      if (mentorsData) {
+        setMentors(mentorsData.map(mapMentor));
+      }
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
   const filteredProjects = statusFilter === 'all'
-    ? mockProjects
-    : mockProjects.filter((p) => p.status === statusFilter);
+    ? projects
+    : projects.filter((p) => p.status === statusFilter);
 
   if (selectedProject) {
-    return <ProjectDetail project={selectedProject} onBack={() => setSelectedProject(null)} />;
+    return <ProjectDetail project={selectedProject} mentors={mentors} onBack={() => setSelectedProject(null)} />;
   }
 
   return (
@@ -443,21 +521,29 @@ export default function ProjectsPage() {
             >
               {s === 'all' ? 'Все' : STATUS_LABELS[s]}
               <span className="ml-1.5 text-white/15">
-                {s === 'all' ? mockProjects.length : mockProjects.filter((p) => p.status === s).length}
+                {s === 'all' ? projects.length : projects.filter((p) => p.status === s).length}
               </span>
             </button>
           ))}
         </div>
 
         {/* Project grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} onClick={() => setSelectedProject(project)} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-16">
+            <p className="text-white/30">Загрузка проектов...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} mentors={mentors} onClick={() => setSelectedProject(project)} />
+              ))}
+            </div>
 
-        {filteredProjects.length === 0 && (
-          <div className="text-center py-16 text-white/30">Нет проектов с выбранным статусом</div>
+            {filteredProjects.length === 0 && (
+              <div className="text-center py-16 text-white/30">Нет проектов с выбранным статусом</div>
+            )}
+          </>
         )}
       </div>
     </PageTransition>

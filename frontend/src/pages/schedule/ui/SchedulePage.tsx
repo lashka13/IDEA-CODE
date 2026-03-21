@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, } from 'framer-motion';
 import {
   Radio,
@@ -13,14 +13,15 @@ import {
   ChevronRight,
   BookOpen,
   ExternalLink,
-  
+
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageTransition, Button,  Modal } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
-import { mockScheduleEvents, type ScheduleEvent, type EventType } from '../../../shared/api/mocks/schedule';
+import { type ScheduleEvent, type EventType } from '../../../shared/api/mocks/schedule';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectPurchasedIds } from '../../../features/buy-material/model/purchaseSlice';
+import { apiClient } from '../../../shared/api/client';
 
 const EVENT_TYPE_META: Record<EventType, { icon: typeof Radio; label: string; bgColor: string; textColor: string; borderColor: string }> = {
   stream: { icon: Radio, label: 'Стрим', bgColor: 'bg-red-500/10', textColor: 'text-red-400', borderColor: 'border-l-red-500' },
@@ -213,6 +214,31 @@ export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date('2025-01-15'));
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
   const [view, setView] = useState<'week' | 'day'>('week');
+  const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
+
+  useEffect(() => {
+    apiClient.getScheduleEvents().then((data: any[]) => {
+      const mapped: ScheduleEvent[] = data.map((ev: any) => ({
+        id: ev.id,
+        title: ev.title,
+        description: ev.description,
+        type: ev.type,
+        hostName: ev.host_name,
+        hostAvatarUrl: ev.host_avatar_url,
+        coverUrl: ev.cover_url,
+        startsAt: ev.starts_at,
+        durationMinutes: ev.duration_minutes,
+        isLive: ev.is_live,
+        participantsCount: ev.participants_count,
+        maxParticipants: ev.max_participants,
+        recordingAvailable: ev.recording_available,
+        tags: ev.tags,
+        materialId: ev.material_id,
+        materialTitle: ev.material_title ?? '',
+      }));
+      setScheduleEvents(mapped);
+    }).catch(() => {});
+  }, []);
 
   const weekDays = useMemo(() => getWeekDays(currentDate), [currentDate]);
 
@@ -233,9 +259,9 @@ export default function SchedulePage() {
   const visibleDays = view === 'week' ? weekDays : [currentDate];
 
   const getEventsForDay = (day: Date) =>
-    mockScheduleEvents.filter((ev) => isSameDay(new Date(ev.startsAt), day));
+    scheduleEvents.filter((ev) => isSameDay(new Date(ev.startsAt), day));
 
-  const liveCount = mockScheduleEvents.filter((ev) => ev.isLive).length;
+  const liveCount = scheduleEvents.filter((ev) => ev.isLive).length;
 
   return (
     <PageTransition>
@@ -420,7 +446,7 @@ export default function SchedulePage() {
 
         {/* Upcoming sidebar for today */}
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {mockScheduleEvents
+          {scheduleEvents
             .filter((ev) => ev.isLive || new Date(ev.startsAt) >= new Date('2025-01-15'))
             .sort((a, b) => {
               if (a.isLive && !b.isLive) return -1;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Star,
@@ -13,7 +13,8 @@ import { useAppSelector } from '../../../app/store/hooks';
 import { selectIsAuthenticated } from '../../../features/auth';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon, Modal } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
-import { mockMentors, type Mentor } from '../../../shared/api/mocks/mentors';
+import { type Mentor } from '../../../shared/api/mocks/mentors';
+import { apiClient } from '../../../shared/api/client';
 import { Link } from 'react-router-dom';
 
 function MentorCard({ mentor, onBook }: { mentor: Mentor; onBook: (m: Mentor) => void }) {
@@ -106,6 +107,8 @@ function MentorCard({ mentor, onBook }: { mentor: Mentor; onBook: (m: Mentor) =>
 
 export default function MentorsPage() {
   const isAuth = useAppSelector(selectIsAuthenticated);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSpec, setFilterSpec] = useState<string | null>(null);
   const [bookingMentor, setBookingMentor] = useState<Mentor | null>(null);
@@ -115,9 +118,41 @@ export default function MentorsPage() {
   const [bookingTopic, setBookingTopic] = useState('Подготовка к собеседованию');
   const [bookingComment, setBookingComment] = useState('');
 
-  const allSpecs = [...new Set(mockMentors.flatMap((m) => m.specializations))];
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    apiClient.getMentors()
+      .then((data) => {
+        if (cancelled) return;
+        const mapped: Mentor[] = data.map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          avatarUrl: m.avatar_url,
+          title: m.title,
+          company: m.company,
+          experience: m.experience,
+          bio: m.bio,
+          techStack: m.tech_stack,
+          rating: m.rating,
+          reviewCount: m.review_count,
+          sessionsCompleted: m.sessions_completed,
+          pricePerHour: m.price_per_hour,
+          available: m.available,
+          specializations: m.specializations,
+          languages: m.languages,
+        }));
+        setMentors(mapped);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
-  const filteredMentors = mockMentors.filter((m) => {
+  const allSpecs = [...new Set(mentors.flatMap((m) => m.specializations))];
+
+  const filteredMentors = mentors.filter((m) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (
@@ -195,16 +230,24 @@ export default function MentorsPage() {
         </div>
 
         {/* Mentor grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredMentors.map((mentor) => (
-            <MentorCard key={mentor.id} mentor={mentor} onBook={handleBook} />
-          ))}
-        </div>
-
-        {filteredMentors.length === 0 && (
+        {loading ? (
           <div className="text-center py-16">
-            <p className="text-white/30">Менторы не найдены</p>
+            <p className="text-white/30">Загрузка менторов...</p>
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredMentors.map((mentor) => (
+                <MentorCard key={mentor.id} mentor={mentor} onBook={handleBook} />
+              ))}
+            </div>
+
+            {filteredMentors.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-white/30">Менторы не найдены</p>
+              </div>
+            )}
+          </>
         )}
 
         {/* Booking Modal */}

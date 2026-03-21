@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -29,7 +29,8 @@ import {
 import { Link } from 'react-router-dom';
 import { PageTransition, GlassCard, Button, Badge } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
-import { mockRoadmapTracks, type RoadmapNode as RoadmapNodeType, type RoadmapTrack } from '../../../shared/api/mocks/roadmap';
+import { type RoadmapNode as RoadmapNodeType, type RoadmapTrack } from '../../../shared/api/mocks/roadmap';
+import { apiClient } from '../../../shared/api/client';
 
 // ---- Custom Node Component ----
 function RoadmapGraphNode({ data }: NodeProps) {
@@ -329,19 +330,26 @@ function NodeDetailPanel({ node, onClose }: { node: RoadmapNodeType; onClose: ()
 function RoadmapGraph() {
   const [selectedNode, setSelectedNode] = useState<RoadmapNodeType | null>(null);
   const [activeTrack, setActiveTrack] = useState<string | null>(null);
+  const [roadmapTracks, setRoadmapTracks] = useState<RoadmapTrack[]>([]);
+
+  useEffect(() => {
+    apiClient.getRoadmapTracks().then((data: any[]) => {
+      setRoadmapTracks(data as RoadmapTrack[]);
+    }).catch(() => {});
+  }, []);
 
   const handleSelect = useCallback((node: RoadmapNodeType) => {
     setSelectedNode(node);
   }, []);
 
   const { nodes, edges } = useMemo(
-    () => buildFlowData(mockRoadmapTracks, handleSelect, activeTrack),
-    [handleSelect, activeTrack]
+    () => buildFlowData(roadmapTracks, handleSelect, activeTrack),
+    [roadmapTracks, handleSelect, activeTrack]
   );
 
-  const totalNodes = mockRoadmapTracks.reduce((s, t) => s + t.nodes.length, 0);
-  const completedNodes = mockRoadmapTracks.reduce((s, t) => s + t.nodes.filter((n) => n.status === 'completed').length, 0);
-  const inProgressNodes = mockRoadmapTracks.reduce((s, t) => s + t.nodes.filter((n) => n.status === 'in_progress').length, 0);
+  const totalNodes = roadmapTracks.reduce((s, t) => s + t.nodes.length, 0);
+  const completedNodes = roadmapTracks.reduce((s, t) => s + t.nodes.filter((n) => n.status === 'completed').length, 0);
+  const inProgressNodes = roadmapTracks.reduce((s, t) => s + t.nodes.filter((n) => n.status === 'in_progress').length, 0);
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col">
@@ -382,7 +390,7 @@ function RoadmapGraph() {
             >
               Все треки
             </button>
-            {mockRoadmapTracks.map((track) => {
+            {roadmapTracks.map((track) => {
               const completed = track.nodes.filter((n) => n.status === 'completed').length;
               return (
                 <button
