@@ -17,6 +17,14 @@ export const checkPurchased = createAsyncThunk(
   }
 );
 
+export const fetchMyPurchases = createAsyncThunk(
+  'purchase/fetchMy',
+  async () => {
+    const data = await apiClient.getMyPurchases();
+    return data.map((m: any) => m.id as string);
+  }
+);
+
 interface PurchaseState {
   purchasedMaterialIds: string[];
   loading: boolean;
@@ -50,6 +58,13 @@ export const purchaseSlice = createSlice({
       .addCase(checkPurchased.fulfilled, (state, action) => {
         if (action.payload.purchased && !state.purchasedMaterialIds.includes(action.payload.materialId)) {
           state.purchasedMaterialIds.push(action.payload.materialId);
+        }
+      })
+      .addCase(fetchMyPurchases.fulfilled, (state, action) => {
+        for (const id of action.payload) {
+          if (!state.purchasedMaterialIds.includes(id)) {
+            state.purchasedMaterialIds.push(id);
+          }
         }
       });
   },

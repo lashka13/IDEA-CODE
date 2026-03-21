@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Users, Search, SmilePlus, Reply, ChevronLeft } from 'lucide-react';
 import { useAppSelector } from '../../../app/store/hooks';
@@ -7,6 +7,7 @@ import { selectAllUsers } from '../../../entities/user';
 import { PageTransition, GlassCard } from '../../../shared/ui';
 import { cn, timeAgo } from '../../../shared/lib';
 import { mockChannels, mockMessages, type ChatChannel, type ChatMessage } from '../../../shared/api/mocks/chat';
+import { apiClient } from '../../../shared/api/client';
 import { Link } from 'react-router-dom';
 
 function MessageBubble({
@@ -65,26 +66,104 @@ function MessageBubble({
 export default function ChatPage() {
   const isAuth = useAppSelector(selectIsAuthenticated);
   const currentUser = useAppSelector(selectCurrentUser);
+  const [channels, setChannels] = useState<ChatChannel[]>(mockChannels);
   const [activeChannel, setActiveChannel] = useState<ChatChannel>(mockChannels[0]);
   const [inputValue, setInputValue] = useState('');
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>(mockMessages);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // Load channels from API
+  useEffect(() => {
+    if (!isAuth) return;
+    apiClient.getChannels()
+      .then((data) => {
+        const mapped: ChatChannel[] = data.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description || '',
+          emoji: c.emoji || '💬',
+          type: c.type || 'general',
+          memberCount: c.member_count || 0,
+        }));
+        if (mapped.length > 0) {
+          setChannels(mapped);
+          setActiveChannel(mapped[0]);
+        }
+      })
+      .catch(() => {});
+  }, [isAuth]);
+
+  // Load messages when channel changes, and connect WebSocket
+  useEffect(() => {
+    if (!isAuth || !activeChannel) return;
+
+    // Load history
+    apiClient.getMessages(activeChannel.id)
+      .then((data) => {
+        const mapped: ChatMessage[] = data.map((m: any) => ({
+          id: m.id,
+          channelId: m.channel_id,
+          authorId: m.author_id,
+          text: m.text,
+          createdAt: m.created_at,
+          replyTo: m.reply_to_id || undefined,
+          reactions: (m.reactions || []).map((r: any) => ({ emoji: r.emoji, count: r.count })),
+        }));
+        setLocalMessages((prev) => {
+          // Keep messages for other channels, replace for this channel
+          const others = prev.filter((m) => m.channelId !== activeChannel.id);
+          return [...others, ...mapped];
+        });
+      })
+      .catch(() => {});
+
+    // WebSocket for real-time
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    const ws = apiClient.createChatWebSocket(activeChannel.id);
+    wsRef.current = ws;
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'message') {
+          const msg: ChatMessage = {
+            id: data.id,
+            channelId: activeChannel.id,
+            authorId: data.author_id,
+            text: data.text,
+            createdAt: data.created_at,
+            replyTo: data.reply_to_id || undefined,
+          };
+          setLocalMessages((prev) => {
+            if (prev.find((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+        }
+      } catch {}
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [isAuth, activeChannel.id]);
 
   const channelMessages = localMessages
     .filter((m) => m.channelId === activeChannel.id)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  const generalChannels = mockChannels.filter((c) => c.type === 'general');
-  const topicChannels = mockChannels.filter((c) => c.type === 'topic');
+  const generalChannels = channels.filter((c) => c.type === 'general');
+  const topicChannels = channels.filter((c) => c.type === 'topic');
 
   const filteredChannels = searchQuery
-    ? mockChannels.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? channels.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : null;
 
   useEffect(() => {
-    // Only scroll within the messages container, not the whole page
     const el = messagesEndRef.current;
     if (el) {
       const container = el.parentElement;
@@ -94,18 +173,24 @@ export default function ChatPage() {
     }
   }, [channelMessages.length, activeChannel.id]);
 
-  const handleSend = () => {
+  const handleSend = useCallback(async () => {
     if (!inputValue.trim() || !currentUser) return;
+    const text = inputValue.trim();
+    setInputValue('');
+    // Optimistic update
+    const tempId = `msg-local-${Date.now()}`;
     const newMsg: ChatMessage = {
-      id: `msg-local-${Date.now()}`,
+      id: tempId,
       channelId: activeChannel.id,
       authorId: currentUser.id,
-      text: inputValue.trim(),
+      text,
       createdAt: new Date().toISOString(),
     };
     setLocalMessages((prev) => [...prev, newMsg]);
-    setInputValue('');
-  };
+    try {
+      await apiClient.sendMessage(activeChannel.id, { text });
+    } catch {}
+  }, [inputValue, currentUser, activeChannel.id]);
 
   if (!isAuth) {
     return (
@@ -253,7 +338,6 @@ export default function ChatPage() {
 }
 
 function ChannelButton({ channel, active, onClick }: { channel: ChatChannel; active: boolean; onClick: () => void }) {
-  const channelMessages = mockMessages.filter((m) => m.channelId === channel.id);
   return (
     <button
       onClick={onClick}
@@ -266,9 +350,6 @@ function ChannelButton({ channel, active, onClick }: { channel: ChatChannel; act
       <div className="flex-1 min-w-0">
         <span className="text-xs font-medium block truncate">{channel.name}</span>
       </div>
-      {channelMessages.length > 0 && (
-        <span className="text-[10px] text-white/15">{channelMessages.length}</span>
-      )}
     </button>
   );
 }

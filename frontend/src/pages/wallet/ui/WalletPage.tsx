@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownLeft, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAppSelector } from '../../../app/store/hooks';
+import { useEffect } from 'react';
+import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
 import { selectCurrentUser, selectIsAuthenticated } from '../../../features/auth';
-import { selectTransactionsByUser } from '../../../entities/transaction';
+import { fetchTransactions, selectTransactionsByUser } from '../../../entities/transaction';
 import { PageTransition, GlassCard, CodeCoinIcon, AnimatedCounter, Badge, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
 import { formatDate, cn } from '../../../shared/lib';
 
@@ -16,9 +17,14 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function WalletPage() {
+  const dispatch = useAppDispatch();
   const isAuth = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectCurrentUser);
   const transactions = useAppSelector(selectTransactionsByUser(user?.id || ''));
+
+  useEffect(() => {
+    if (isAuth) dispatch(fetchTransactions());
+  }, [isAuth, dispatch]);
 
   if (!isAuth || !user) {
     return (

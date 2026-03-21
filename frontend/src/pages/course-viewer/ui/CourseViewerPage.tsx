@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -29,8 +29,8 @@ import {
 } from '../../../features/course-progress';
 import { PageTransition, GlassCard, Button, Badge } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
-import { mockLessons } from '../../../shared/api/mocks/lessons';
-import type { LessonContent, QuizQuestion } from '../../../shared/types';
+import { apiClient } from '../../../shared/api/client';
+import type { Lesson, LessonContent, QuizQuestion } from '../../../shared/types';
 
 // ---- Quiz Component ----
 function QuizBlock({
@@ -506,8 +506,45 @@ export default function CourseViewerPage() {
   const progress = useAppSelector(selectCourseProgress(id || ''));
   const activeLessonId = useAppSelector(selectActiveLesson);
 
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    setLessonsLoading(true);
+    apiClient.getLessons(id)
+      .then((data: any[]) => {
+        const mapped = data
+          .map((l) => ({
+            id: l.id,
+            materialId: l.material_id,
+            title: l.title,
+            order: l.order,
+            duration: l.duration || '—',
+            isPreview: l.is_preview ?? false,
+            contents: Array.isArray(l.contents) ? l.contents : [],
+          }))
+          .sort((a, b) => a.order - b.order);
+        setLessons(mapped);
+      })
+      .catch(() => {})
+      .finally(() => setLessonsLoading(false));
+  }, [id]);
+
   const material = materials.find((m) => m.id === id);
-  const lessons = mockLessons.filter((l) => l.materialId === id).sort((a, b) => a.order - b.order);
+
+  // Loading state
+  if (lessonsLoading) {
+    return (
+      <PageTransition>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-24 pb-16">
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => <div key={i} className="h-24 rounded-xl bg-white/[0.02] animate-pulse" />)}
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   // If no lessons exist for this material, redirect to material detail
   if (!material || lessons.length === 0) {

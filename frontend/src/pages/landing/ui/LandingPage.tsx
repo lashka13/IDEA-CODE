@@ -2,10 +2,9 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Users, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '../../../app/store/hooks';
-import { selectPopularMaterials } from '../../../entities/material';
-import { selectActiveCommunities } from '../../../entities/community';
-import { selectTopAuthors } from '../../../entities/user';
-import { selectAllUsers } from '../../../entities/user';
+import { selectPopularMaterials, selectAllMaterials } from '../../../entities/material';
+import { selectActiveCommunities, selectAllCommunities } from '../../../entities/community';
+import { selectTopAuthors, selectAllUsers } from '../../../entities/user';
 import { PageTransition, GradientMesh, TextReveal, Button, GlassCard, AnimatedCounter, StaggerContainer, staggerItemVariants, CodeCoinIcon } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { MaterialCard } from '../../../entities/material/ui/MaterialCard';
@@ -16,6 +15,8 @@ export default function LandingPage() {
   const activeCommunities = useAppSelector(selectActiveCommunities);
   const topAuthors = useAppSelector(selectTopAuthors);
   const allUsers = useAppSelector(selectAllUsers);
+  const allMaterials = useAppSelector(selectAllMaterials);
+  const allCommunities = useAppSelector(selectAllCommunities);
 
   return (
     <PageTransition>
@@ -73,9 +74,9 @@ export default function LandingPage() {
             className="flex items-center justify-center gap-8 sm:gap-16 mt-16"
           >
             {[
-              { value: 1247, label: 'Материалов', suffix: '+' },
-              { value: 342, label: 'Студентов' },
-              { value: 7, label: 'Сообществ' },
+              { value: allMaterials.length || 1247, label: 'Материалов', suffix: '+' },
+              { value: allUsers.length || 342, label: 'Студентов' },
+              { value: allCommunities.length || 7, label: 'Сообществ' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-white">

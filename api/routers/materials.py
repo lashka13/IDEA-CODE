@@ -83,6 +83,20 @@ async def get_materials(
     )
 
 
+@router.get("/my-purchases", response_model=list[MaterialResponse])
+async def get_my_purchases(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Material)
+        .join(Purchase, Purchase.material_id == Material.id)
+        .where(Purchase.user_id == current_user.id)
+        .order_by(Purchase.created_at.desc())
+    )
+    return [MaterialResponse.model_validate(m) for m in result.scalars().all()]
+
+
 @router.get("/popular", response_model=list[MaterialResponse])
 async def get_popular_materials(limit: int = 8, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

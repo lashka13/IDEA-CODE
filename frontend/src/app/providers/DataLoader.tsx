@@ -5,15 +5,17 @@ import { fetchMaterials } from '../../entities/material';
 import { fetchUsers } from '../../entities/user';
 import { fetchCommunities } from '../../entities/community';
 import { fetchAchievements } from '../../entities/achievement';
+import { fetchMyPurchases } from '../../features/buy-material';
 import { apiClient } from '../../shared/api/client';
 
 export function DataLoader({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    // Restore session if token exists
+    // Restore session if token exists, then load user-specific data
     if (apiClient.getToken()) {
       dispatch(restoreSession());
+      dispatch(fetchMyPurchases());
     }
 
     // Load data from API (falls back to mock data on failure)

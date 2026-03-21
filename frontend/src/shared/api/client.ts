@@ -112,6 +112,10 @@ class ApiClient {
     return this.request<any>(`/materials/${id}/purchase`, { method: 'POST' });
   }
 
+  async getMyPurchases() {
+    return this.request<any[]>('/materials/my-purchases');
+  }
+
   async isPurchased(id: string) {
     return this.request<{ purchased: boolean }>(`/materials/${id}/is-purchased`);
   }
@@ -188,6 +192,13 @@ class ApiClient {
   // Lessons
   async getLessons(materialId: string) {
     return this.request<any[]>(`/materials/${materialId}/lessons/`);
+  }
+
+  async createLesson(materialId: string, data: any) {
+    return this.request<any>(`/materials/${materialId}/lessons/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // Notifications
