@@ -19,6 +19,8 @@ const SchedulePage = lazy(() => import('../../pages/schedule'));
 const ProfilePage = lazy(() => import('../../pages/profile'));
 const WalletPage = lazy(() => import('../../pages/wallet'));
 const LoginPage = lazy(() => import('../../pages/auth'));
+const NotificationsPage = lazy(() => import('../../pages/notifications'));
+const ProfileEditPage = lazy(() => import('../../pages/profile-edit'));
 const NotFoundPage = lazy(() => import('../../pages/not-found'));
 
 function PageLoader() {
@@ -54,8 +56,10 @@ export function AppRouter() {
           <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/edit" element={<ProfileEditPage />} />
           <Route path="/profile/:id" element={<ProfilePage />} />
           <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

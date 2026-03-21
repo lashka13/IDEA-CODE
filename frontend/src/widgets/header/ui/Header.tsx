@@ -8,8 +8,9 @@ import { CodeCoinIcon, Button } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { APP_NAME } from '../../../shared/config/constants';
 import { HeaderSearch } from './HeaderSearch';
-import { mockNotifications, type AppNotification } from '../../../shared/api/mocks/notifications';
+import { type AppNotification } from '../../../shared/api/mocks/notifications';
 import { timeAgo } from '../../../shared/lib';
+import { apiClient } from '../../../shared/api/client';
 
 const NOTIF_ICONS: Record<AppNotification['type'], typeof Bell> = {
   purchase: ShoppingCart,
@@ -33,11 +34,30 @@ const NOTIF_COLORS: Record<AppNotification['type'], string> = {
   system: 'text-white/40 bg-white/[0.06]',
 };
 
-function NotificationDropdown({ open, onClose }: { open: boolean; onClose: () => void }) {
+function NotificationDropdown({ open, onClose, onUnreadChange }: { open: boolean; onClose: () => void; onUnreadChange: (n: number) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  useEffect(() => {
+    onUnreadChange(unreadCount);
+  }, [unreadCount, onUnreadChange]);
+
+  useEffect(() => {
+    if (open && !loaded) {
+      apiClient.getNotifications()
+        .then((data) => {
+          setNotifications(data.slice(0, 8).map((n: any) => ({
+            id: n.id, type: n.type, title: n.title, message: n.message,
+            read: n.is_read, createdAt: n.created_at, link: n.link,
+          })));
+          setLoaded(true);
+        })
+        .catch(() => setLoaded(true));
+    }
+  }, [open, loaded]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -47,7 +67,8 @@ function NotificationDropdown({ open, onClose }: { open: boolean; onClose: () =>
     return () => document.removeEventListener('mousedown', handler);
   }, [open, onClose]);
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    await apiClient.markAllRead().catch(() => {});
     setNotifications(notifications.map((n) => ({ ...n, read: true })));
   };
 
@@ -83,34 +104,52 @@ function NotificationDropdown({ open, onClose }: { open: boolean; onClose: () =>
           </div>
 
           {/* List */}
-          <div className="overflow-y-auto max-h-[400px] custom-scrollbar">
-            {notifications.map((notif) => {
-              const Icon = NOTIF_ICONS[notif.type];
-              return (
-                <Link
-                  key={notif.id}
-                  to={notif.link || '#'}
-                  onClick={onClose}
-                  className={cn(
-                    'flex gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors border-b border-white/[0.03] last:border-0',
-                    !notif.read && 'bg-white/[0.02]'
-                  )}
-                >
-                  <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', NOTIF_COLORS[notif.type])}>
-                    <Icon size={14} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold truncate">{notif.title}</p>
-                      {!notif.read && <span className="w-1.5 h-1.5 rounded-full bg-accent-green flex-shrink-0" />}
+          <div className="overflow-y-auto max-h-[360px] custom-scrollbar">
+            {!loaded ? (
+              <div className="p-4 space-y-2">
+                {[1, 2, 3].map((i) => <div key={i} className="h-12 rounded-lg bg-white/[0.02] animate-pulse" />)}
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="py-10 text-center">
+                <p className="text-sm text-white/30">Нет уведомлений</p>
+              </div>
+            ) : (
+              notifications.map((notif) => {
+                const Icon = NOTIF_ICONS[notif.type];
+                return (
+                  <Link
+                    key={notif.id}
+                    to={notif.link || '#'}
+                    onClick={onClose}
+                    className={cn(
+                      'flex gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors border-b border-white/[0.03] last:border-0',
+                      !notif.read && 'bg-white/[0.02]'
+                    )}
+                  >
+                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', NOTIF_COLORS[notif.type])}>
+                      <Icon size={14} />
                     </div>
-                    <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2 mt-0.5">{notif.message}</p>
-                    <p className="text-[10px] text-white/20 mt-1">{timeAgo(notif.createdAt)}</p>
-                  </div>
-                </Link>
-              );
-            })}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold truncate">{notif.title}</p>
+                        {!notif.read && <span className="w-1.5 h-1.5 rounded-full bg-accent-green flex-shrink-0" />}
+                      </div>
+                      <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2 mt-0.5">{notif.message}</p>
+                      <p className="text-[10px] text-white/20 mt-1">{timeAgo(notif.createdAt)}</p>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
           </div>
+          {/* Footer: link to full page */}
+          <Link
+            to="/notifications"
+            onClick={onClose}
+            className="block text-center text-xs text-accent-cyan hover:text-accent-cyan/80 py-3 border-t border-white/[0.06] transition-colors"
+          >
+            Все уведомления →
+          </Link>
         </motion.div>
       )}
     </AnimatePresence>
@@ -127,7 +166,14 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const unreadCount = mockNotifications.filter((n) => !n.read).length;
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAuth) return;
+    apiClient.getUnreadCount()
+      .then((data) => setUnreadCount(data.count))
+      .catch(() => {});
+  }, [isAuth]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -216,7 +262,7 @@ export function Header() {
                     </span>
                   )}
                 </button>
-                <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} />
+                <NotificationDropdown open={notifOpen} onClose={() => setNotifOpen(false)} onUnreadChange={setUnreadCount} />
               </div>
             )}
 

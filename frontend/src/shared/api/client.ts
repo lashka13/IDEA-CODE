@@ -214,6 +214,18 @@ class ApiClient {
     return this.request<any>('/notifications/read-all', { method: 'POST' });
   }
 
+  async markNotificationRead(id: string) {
+    return this.request<any>(`/notifications/${id}/read`, { method: 'POST' });
+  }
+
+  // Users
+  async updateProfile(data: { name?: string; bio?: string; avatar_url?: string; tech_stack?: string[]; skills?: Record<string, number> }) {
+    return this.request<any>('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Chat
   async getChannels() {
     return this.request<any[]>('/chat/channels');

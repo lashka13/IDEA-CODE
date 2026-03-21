@@ -39,6 +39,14 @@ export const registerAsync = createAsyncThunk(
   }
 );
 
+export const updateProfileAsync = createAsyncThunk(
+  'auth/updateProfile',
+  async (payload: { name?: string; bio?: string; avatar_url?: string; tech_stack?: string[]; skills?: Record<string, number> }) => {
+    const data = await apiClient.updateProfile(payload);
+    return mapUser(data);
+  }
+);
+
 export const restoreSession = createAsyncThunk(
   'auth/restoreSession',
   async () => {
@@ -114,6 +122,11 @@ export const authSlice = createSlice({
       .addCase(registerAsync.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Registration failed';
+      });
+    // Update profile
+    builder
+      .addCase(updateProfileAsync.fulfilled, (state, action) => {
+        state.user = action.payload;
       });
     // Restore session
     builder

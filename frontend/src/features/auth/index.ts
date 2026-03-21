@@ -7,6 +7,7 @@ export {
   loginAsync,
   registerAsync,
   restoreSession,
+  updateProfileAsync,
   selectCurrentUser,
   selectIsAuthenticated,
   selectAuthLoading,

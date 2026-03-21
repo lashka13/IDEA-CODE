@@ -1,7 +1,7 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Calendar, Upload, ShoppingBag, Award } from 'lucide-react';
+import { Star, Calendar, Upload, ShoppingBag, Award, Settings } from 'lucide-react';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllUsers } from '../../../entities/user';
 import { selectAllMaterials } from '../../../entities/material';
@@ -97,6 +97,7 @@ function SkillRadar({ skills }: { skills: Record<string, number> }) {
 
 export default function ProfilePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const users = useAppSelector(selectAllUsers);
   const materials = useAppSelector(selectAllMaterials);
   const currentUser = useAppSelector(selectCurrentUser);
@@ -145,6 +146,14 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
               <h1 className="text-2xl font-bold">{profileUser.name}</h1>
               <Badge variant="cyan" size="md">{profileUser.levelTitle}</Badge>
+              {!id && isAuth && (
+                <button
+                  onClick={() => navigate('/profile/edit')}
+                  className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs text-white/40 hover:text-white/70 hover:bg-white/[0.06] border border-white/[0.06] transition-all"
+                >
+                  <Settings size={12} /> Редактировать
+                </button>
+              )}
             </div>
             <p className="text-sm text-white/30 mb-3">@{profileUser.username}</p>
             <p className="text-sm text-white/50 mb-4">{profileUser.bio}</p>
