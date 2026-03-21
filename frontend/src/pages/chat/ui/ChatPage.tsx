@@ -6,7 +6,7 @@ import { selectCurrentUser, selectIsAuthenticated } from '../../../features/auth
 import { selectAllUsers } from '../../../entities/user';
 import { PageTransition, GlassCard } from '../../../shared/ui';
 import { cn, timeAgo } from '../../../shared/lib';
-import { mockChannels, mockMessages, type ChatChannel, type ChatMessage } from '../../../shared/api/mocks/chat';
+import { type ChatChannel, type ChatMessage } from '../../../shared/api/mocks/chat';
 import { apiClient } from '../../../shared/api/client';
 import { Link } from 'react-router-dom';
 
@@ -66,10 +66,10 @@ function MessageBubble({
 export default function ChatPage() {
   const isAuth = useAppSelector(selectIsAuthenticated);
   const currentUser = useAppSelector(selectCurrentUser);
-  const [channels, setChannels] = useState<ChatChannel[]>(mockChannels);
-  const [activeChannel, setActiveChannel] = useState<ChatChannel>(mockChannels[0]);
+  const [channels, setChannels] = useState<ChatChannel[]>([]);
+  const [activeChannel, setActiveChannel] = useState<ChatChannel | null>(null);
   const [inputValue, setInputValue] = useState('');
-  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(mockMessages);
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -84,8 +84,8 @@ export default function ChatPage() {
           id: c.id,
           name: c.name,
           description: c.description || '',
-          emoji: c.emoji || '💬',
-          type: c.type || 'general',
+          emoji: c.icon || '💬',
+          type: c.is_general ? 'general' : 'topic',
           memberCount: c.member_count || 0,
           lastActivity: c.last_activity || new Date().toISOString(),
         }));
@@ -99,7 +99,7 @@ export default function ChatPage() {
 
   // Load messages when channel changes, and connect WebSocket
   useEffect(() => {
-    if (!isAuth || !activeChannel) return;
+    if (!isAuth || !activeChannel?.id) return;
 
     // Load history
     apiClient.getMessages(activeChannel.id)
@@ -153,9 +153,11 @@ export default function ChatPage() {
     };
   }, [isAuth, activeChannel.id]);
 
-  const channelMessages = localMessages
-    .filter((m) => m.channelId === activeChannel.id)
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const channelMessages = activeChannel
+    ? localMessages
+        .filter((m) => m.channelId === activeChannel.id)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    : [];
 
   const generalChannels = channels.filter((c) => c.type === 'general');
   const topicChannels = channels.filter((c) => c.type === 'topic');
@@ -172,10 +174,10 @@ export default function ChatPage() {
         container.scrollTop = container.scrollHeight;
       }
     }
-  }, [channelMessages.length, activeChannel.id]);
+  }, [channelMessages.length, activeChannel?.id]);
 
   const handleSend = useCallback(async () => {
-    if (!inputValue.trim() || !currentUser) return;
+    if (!inputValue.trim() || !currentUser || !activeChannel) return;
     const text = inputValue.trim();
     setInputValue('');
     // Optimistic update
@@ -268,8 +270,13 @@ export default function ChatPage() {
 
           {/* Main chat area */}
           <div className="flex-1 flex flex-col min-w-0 bg-surface-900/30">
+            {!activeChannel ? (
+              <div className="flex-1 flex items-center justify-center text-white/20 text-sm">
+                Загрузка каналов...
+              </div>
+            ) : null}
             {/* Channel header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] bg-surface-900/50">
+            {activeChannel && <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.04] bg-surface-900/50">
               <button
                 onClick={() => setShowSidebar(!showSidebar)}
                 className="p-1.5 rounded-lg hover:bg-white/[0.04] transition-colors text-white/30 lg:hidden"
@@ -285,10 +292,10 @@ export default function ChatPage() {
                 <Users size={12} />
                 {activeChannel.memberCount}
               </div>
-            </div>
+            </div>}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-1 custom-scrollbar">
+            {activeChannel && <div className="flex-1 overflow-y-auto py-4 space-y-1 custom-scrollbar">
               {channelMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <span className="text-4xl mb-3">{activeChannel.emoji}</span>
@@ -302,10 +309,10 @@ export default function ChatPage() {
                 ))
               )}
               <div ref={messagesEndRef} />
-            </div>
+            </div>}
 
             {/* Input */}
-            <div className="p-3 border-t border-white/[0.04]">
+            {activeChannel && <div className="p-3 border-t border-white/[0.04]">
               <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2 focus-within:border-accent-green/20 transition-colors">
                 <input
                   value={inputValue}
@@ -330,7 +337,7 @@ export default function ChatPage() {
                   <Send size={16} />
                 </button>
               </div>
-            </div>
+            </div>}
           </div>
         </div>
       </div>
