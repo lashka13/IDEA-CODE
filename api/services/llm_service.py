@@ -74,7 +74,6 @@ async def _openrouter_chat(messages: list[dict]) -> Optional[str]:
     headers = {
         "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        # Recommended by OpenRouter for analytics / rate-limit allowlisting
         "HTTP-Referer": "https://it-resource.app",
         "X-Title": "IT-RE:SOURCE",
     }
@@ -85,25 +84,29 @@ async def _openrouter_chat(messages: list[dict]) -> Optional[str]:
         "temperature": 0.3,
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(
-                f"{OPENROUTER_BASE_URL}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            # Standard OpenAI response: {"choices": [{"message": {"content": "..."}}]}
-            return data["choices"][0]["message"]["content"]
-    except httpx.HTTPStatusError as exc:
-        logger.warning(
-            "OpenRouter HTTP error %s: %s",
-            exc.response.status_code,
-            exc.response.text[:300],
-        )
-    except Exception as exc:
-        logger.warning("OpenRouter call failed: %s", exc)
+    import asyncio
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                resp = await client.post(
+                    f"{OPENROUTER_BASE_URL}/chat/completions",
+                    json=payload,
+                    headers=headers,
+                )
+                if resp.status_code == 429:
+                    wait = 5 * (attempt + 1)
+                    logger.warning("OpenRouter 429 rate limit — retry %d/3 in %ds", attempt + 1, wait)
+                    await asyncio.sleep(wait)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+        except httpx.HTTPStatusError as exc:
+            logger.warning("OpenRouter HTTP error %s: %s", exc.response.status_code, exc.response.text[:300])
+            break
+        except Exception as exc:
+            logger.warning("OpenRouter call failed: %s", exc)
+            break
     return None
 
 

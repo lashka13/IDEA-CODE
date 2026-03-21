@@ -1,8 +1,11 @@
+import logging
 import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
-from database import get_db
+from database import get_db, async_session
+
+logger = logging.getLogger(__name__)
 from models.user import User
 from models.material import Material
 from models.purchase import Purchase
@@ -114,17 +117,19 @@ async def get_material(material_id: str, db: AsyncSession = Depends(get_db)):
     return MaterialResponse.model_validate(material)
 
 
-async def _auto_index_material(material_id: str, db: AsyncSession) -> None:
+async def _auto_index_material(material_id: str) -> None:
     """Background task: index newly created material into the AI vector store."""
     try:
         from routers.ai import _index_single_material, _rebuild_bm25
-        result = await db.execute(select(Material).where(Material.id == material_id))
-        mat = result.scalar_one_or_none()
-        if mat:
-            await _index_single_material(mat)
-            await _rebuild_bm25(db)
-    except Exception:
-        pass  # indexing is best-effort — never fail the main request
+        async with async_session() as db:
+            result = await db.execute(select(Material).where(Material.id == material_id))
+            mat = result.scalar_one_or_none()
+            if mat:
+                await _index_single_material(mat)
+                await _rebuild_bm25(db)
+                logger.info("Auto-indexed material %s ('%s')", material_id, mat.title)
+    except Exception as exc:
+        logger.warning("Auto-indexing failed for %s: %s", material_id, exc)
 
 
 @router.post("/", response_model=MaterialResponse, status_code=201)
@@ -158,7 +163,7 @@ async def create_material(
     await db.refresh(material)
 
     # Automatically index this material so it's searchable right away
-    background_tasks.add_task(_auto_index_material, material_id, db)
+    background_tasks.add_task(_auto_index_material, material_id)
 
     return MaterialResponse.model_validate(material)
 

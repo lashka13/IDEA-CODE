@@ -18,6 +18,8 @@ async def seed():
         await conn.run_sync(Base.metadata.create_all)
 
     async with async_session() as db:
+        # Insert in dependency order, committing each batch before dependents
+
         # ===== ACHIEVEMENTS =====
         achievements = [
             Achievement(id="ach-1", name="Первый шаг", description="Зарегистрируйся на платформе", icon="🎯", rarity="common"),
@@ -32,6 +34,7 @@ async def seed():
             Achievement(id="ach-10", name="Книжный червь", description="Купи 50+ материалов", icon="📚", rarity="epic"),
         ]
         db.add_all(achievements)
+        await db.commit()
 
         # ===== USERS =====
         users_data = [
@@ -114,6 +117,8 @@ async def seed():
             for ach_id in ach_ids:
                 db.add(UserAchievement(user_id=user.id, achievement_id=ach_id))
 
+        await db.commit()
+
         # ===== COMMUNITIES =====
         communities = [
             Community(id="comm-1", name="Frontend", slug="frontend",
@@ -153,6 +158,7 @@ async def seed():
                       tags=["Unity", "Unreal Engine", "Godot", "C#", "C++"], created_at=datetime(2025, 10, 1)),
         ]
         db.add_all(communities)
+        await db.commit()
 
         # ===== MATERIALS (first 10) =====
         materials = [
@@ -257,6 +263,7 @@ async def seed():
                      community_id="comm-2", created_at=datetime(2026, 3, 5)),
         ]
         db.add_all(materials)
+        await db.commit()
 
         # ===== TRANSACTIONS =====
         transactions = [
@@ -277,6 +284,7 @@ async def seed():
             Transaction(id="tx-15", user_id="user-4", type="reward", amount=50, description="Бонус за регистрацию", created_at=datetime(2026, 1, 10, 10, 0)),
         ]
         db.add_all(transactions)
+        await db.commit()
 
         # ===== COMMENTS =====
         comments = [
@@ -292,6 +300,7 @@ async def seed():
             Comment(id="com-10", material_id="mat-8", author_id="user-1", text="K8s наконец стал понятен. Helm Charts — магия.", rating=5, created_at=datetime(2026, 3, 10, 10, 0)),
         ]
         db.add_all(comments)
+        await db.commit()
 
         # ===== POSTS =====
         posts = [
@@ -327,6 +336,7 @@ async def seed():
                  created_at=datetime(2026, 3, 6, 17, 0)),
         ]
         db.add_all(posts)
+        await db.commit()
 
         # ===== CHAT CHANNELS =====
         channels = [
@@ -338,7 +348,6 @@ async def seed():
             ChatChannel(id="ch-security", name="CyberSecurity", description="Обсуждения безопасности", icon="🔐", community_id="comm-5"),
         ]
         db.add_all(channels)
-
         await db.commit()
         print("✅ Database seeded successfully!")
         print(f"   - {len(users_data)} users (password: {DEFAULT_PASSWORD})")

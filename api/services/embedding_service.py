@@ -22,8 +22,8 @@ settings = get_settings()
 EMBEDDING_DIM = 384  # paraphrase-multilingual-MiniLM-L12-v2
 
 _HF_API_URL = (
-    "https://api-inference.huggingface.co/models/"
-    f"sentence-transformers/{settings.EMBEDDING_MODEL}"
+    "https://router.huggingface.co/hf-inference/models/"
+    f"sentence-transformers/{settings.EMBEDDING_MODEL}/pipeline/feature-extraction"
 )
 
 # ---------------------------------------------------------------------------
@@ -112,8 +112,8 @@ async def get_embeddings(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
 
-    # 1. HuggingFace API (preferred — instant, no local download)
-    if settings.HF_API_TOKEN:
+    # 1. HuggingFace API (only if token starts with "hf_")
+    if settings.HF_API_TOKEN and settings.HF_API_TOKEN.startswith("hf_"):
         result = await _get_hf_embeddings(texts)
         if result is not None:
             return result
