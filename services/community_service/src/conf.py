@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+import json
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -9,6 +11,18 @@ class Settings(BaseSettings):
     KAFKA_BOOTSTRAP_SERVERS: str = "kafka:29092"
     REDIS_URL: str = "redis://redis:6379/2"
     CORS_ORIGINS: list[str] = ["*"]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors(cls, v):
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            v = v.strip().strip("'\"")
+            if v.startswith("["):
+                return json.loads(v)
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return ["*"]
 
     class Config:
         env_file = ".env"

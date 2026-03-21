@@ -111,7 +111,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/0
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["*"]'}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
     depends_on:
       postgres:
@@ -136,7 +136,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/1
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["*"]'}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       AUTH_SERVICE_URL: http://auth_service:8000
       SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
       PISTON_URL: http://piston:2000
@@ -163,7 +163,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/2
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["*"]'}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
@@ -185,7 +185,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/3
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["*"]'}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       AUTH_SERVICE_URL: http://auth_service:8000
     depends_on:
       postgres:
@@ -208,7 +208,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/4
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["*"]'}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
@@ -230,7 +230,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-super-secret-key-change-in-production}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDIS_URL: redis://redis:6379/5
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["*"]'}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
@@ -259,7 +259,7 @@ services:
       EMBEDDING_MODEL: openai/text-embedding-3-small
       LLM_MODEL: nvidia/nemotron-3-super-120b-a12b:free
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["*"]'}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
