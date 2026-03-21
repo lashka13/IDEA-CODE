@@ -58,6 +58,8 @@ PROJECTS = [
             {"userId": "user-masha01", "role": "frontend"},
             {"userId": "user-dima01", "role": "devops"},
             {"userId": "user-anna01", "role": "backend"},
+            {"userId": "user-kirill01", "role": "backend"},
+            {"userId": "user-elena01", "role": "pm"},
         ],
         "max_members": 6,
     },
@@ -104,6 +106,7 @@ PROJECTS = [
         ],
         "members": [
             {"userId": "user-dima01", "role": "backend", "isTeamLead": True},
+            {"userId": "user-anna01", "role": "backend"},
             {"userId": "user-masha01", "role": "ml"},
             {"userId": "user-alex01", "role": "frontend"},
         ],
@@ -154,8 +157,17 @@ async def seed():
             r = await session.execute(select(Project).where(Project.id == p["id"]))
             existing = r.scalar_one_or_none()
             if existing:
-                if not existing.cover_url and p.get("cover_url"):
+                changed = False
+                if p.get("cover_url") and existing.cover_url != p["cover_url"]:
                     existing.cover_url = p["cover_url"]
+                    changed = True
+                if p.get("members") and existing.members != p["members"]:
+                    existing.members = p["members"]
+                    changed = True
+                if p.get("team_slots") and existing.team_slots != p["team_slots"]:
+                    existing.team_slots = p["team_slots"]
+                    changed = True
+                if changed:
                     print(f"  update {p['title'][:40]}")
                     updated += 1
                 else:

@@ -1,5 +1,5 @@
 export type ProjectStatus = 'recruiting' | 'in-progress' | 'review' | 'completed';
-export type ProjectRole = 'frontend' | 'backend' | 'ml' | 'design' | 'devops' | 'pm' | 'qa';
+export type ProjectRole = 'frontend' | 'backend' | 'ml' | 'design' | 'devops' | 'pm' | 'qa' | 'mobile';
 
 export interface ProjectMember {
   userId: string;
@@ -41,6 +41,7 @@ export const ROLE_LABELS: Record<ProjectRole, string> = {
   devops: 'DevOps',
   pm: 'PM',
   qa: 'QA',
+  mobile: 'Mobile',
 };
 
 export const ROLE_COLORS: Record<ProjectRole, string> = {
@@ -51,6 +52,7 @@ export const ROLE_COLORS: Record<ProjectRole, string> = {
   devops: '#4CAF50',
   pm: '#9C27B0',
   qa: '#FF9800',
+  mobile: '#E91E63',
 };
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {

@@ -22,6 +22,8 @@ import {
   ROLE_COLORS,
   STATUS_LABELS,
   type Project,
+  type ProjectMember,
+  type ProjectTeamSlot,
   type ProjectRole,
   type ProjectStatus,
 } from '../../../shared/api/mocks/projects';
@@ -438,24 +440,38 @@ export default function ProjectsPage() {
       languages: m.languages,
     });
 
-    const mapProject = (p: any): Project => ({
-      id: p.id,
-      title: p.title,
-      description: p.description,
-      coverUrl: p.cover_url ?? p.coverUrl ?? '',
-      difficulty: p.difficulty,
-      status: p.status,
-      mentorId: p.mentor_id ?? p.mentorId,
-      techStack: p.tech_stack ?? p.techStack ?? [],
-      teamSlots: p.team_slots ?? p.teamSlots ?? [],
-      members: p.members ?? [],
-      githubUrl: p.github_url ?? p.githubUrl,
-      deadline: p.deadline,
-      rewardCoins: p.reward_coins ?? p.rewardCoins ?? 0,
-      tags: p.tags ?? [],
-      createdAt: p.created_at ?? p.createdAt ?? '',
-      tasks: p.tasks ?? [],
-    });
+    const mapProject = (p: any): Project => {
+      const members: ProjectMember[] = (p.members ?? []).map((m: any) => ({
+        userId: m.userId ?? m.user_id,
+        role: m.role,
+        isTeamLead: m.isTeamLead ?? m.is_team_lead ?? false,
+      }));
+      const rawSlots = p.team_slots ?? p.teamSlots ?? [];
+      const teamSlots: ProjectTeamSlot[] = rawSlots.map((s: any) => ({
+        role: s.role,
+        label: s.label,
+        total: s.total,
+        filled: members.filter((m: ProjectMember) => m.role === s.role).length,
+      }));
+      return {
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        coverUrl: p.cover_url ?? p.coverUrl ?? '',
+        difficulty: p.difficulty,
+        status: p.status,
+        mentorId: p.mentor_id ?? p.mentorId,
+        techStack: p.tech_stack ?? p.techStack ?? [],
+        teamSlots,
+        members,
+        githubUrl: p.github_url ?? p.githubUrl,
+        deadline: p.deadline,
+        rewardCoins: p.reward_coins ?? p.rewardCoins ?? 0,
+        tags: p.tags ?? [],
+        createdAt: p.created_at ?? p.createdAt ?? '',
+        tasks: p.tasks ?? [],
+      };
+    };
 
     Promise.all([
       apiClient.getProjects().catch(() => null),
