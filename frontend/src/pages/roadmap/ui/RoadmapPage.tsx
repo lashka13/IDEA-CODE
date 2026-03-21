@@ -29,7 +29,7 @@ import {
 import { Link } from 'react-router-dom';
 import { PageTransition, GlassCard, Button, Badge } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
-import { type RoadmapNode as RoadmapNodeType, type RoadmapTrack } from '../../../shared/api/mocks/roadmap';
+import { type RoadmapNode as RoadmapNodeType, type RoadmapTrack } from '../../../shared/types';
 import { apiClient } from '../../../shared/api/client';
 
 // ---- Custom Node Component ----

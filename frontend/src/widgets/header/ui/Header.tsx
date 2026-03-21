@@ -8,7 +8,7 @@ import { CodeCoinIcon, Button } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { APP_NAME } from '../../../shared/config/constants';
 import { HeaderSearch } from './HeaderSearch';
-import { type AppNotification } from '../../../shared/api/mocks/notifications';
+import { type AppNotification } from '../../../shared/types';
 import { timeAgo } from '../../../shared/lib';
 import { apiClient } from '../../../shared/api/client';
 

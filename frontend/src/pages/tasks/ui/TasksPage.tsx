@@ -20,8 +20,7 @@ import {
 } from 'lucide-react';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon } from '../../../shared/ui';
 import { cn, } from '../../../shared/lib';
-import { TASK_CATEGORIES, type Task, type TaskCategory, type TaskDifficulty } from '../../../shared/api/mocks/tasks';
-import { type Challenge } from '../../../shared/api/mocks/challenges';
+import { TASK_CATEGORIES, type Task, type TaskCategory, type TaskDifficulty, type Challenge } from '../../../shared/types';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllUsers } from '../../../entities/user';
 import { apiClient } from '../../../shared/api/client';
@@ -152,10 +151,26 @@ function CodeIDE({
 function TheoryQuestion({ task }: { task: Task }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [correctOptionId, setCorrectOptionId] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<string>('');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selected) return;
-    setSubmitted(true);
+    setChecking(true);
+    try {
+      const res = await apiClient.checkTaskAnswer(task.id, selected);
+      setCorrectOptionId(res.correct_option_id);
+      setExplanation(res.explanation);
+      setSubmitted(true);
+    } catch {
+      // Fallback to client-side if API unavailable
+      setCorrectOptionId(task.correctOptionId || null);
+      setExplanation(task.explanation || '');
+      setSubmitted(true);
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -165,7 +180,7 @@ function TheoryQuestion({ task }: { task: Task }) {
 
       <div className="space-y-3 mb-6">
         {task.options?.map((opt) => {
-          const isCorrect = opt.id === task.correctOptionId;
+          const isCorrect = submitted && opt.id === correctOptionId;
           const isSelected = opt.id === selected;
           return (
             <button
@@ -197,26 +212,26 @@ function TheoryQuestion({ task }: { task: Task }) {
         })}
       </div>
 
-      {submitted && task.explanation && (
+      {submitted && explanation && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
             'p-4 rounded-xl text-sm mb-6',
-            selected === task.correctOptionId
+            selected === correctOptionId
               ? 'bg-accent-green/5 border border-accent-green/10'
               : 'bg-red-500/5 border border-red-500/10'
           )}
         >
           <p className="font-medium mb-1">
-            {selected === task.correctOptionId ? '✓ Правильно!' : '✗ Неверно'}
+            {selected === correctOptionId ? '✓ Правильно!' : '✗ Неверно'}
           </p>
-          <p className="text-white/50">{task.explanation}</p>
+          <p className="text-white/50">{explanation}</p>
         </motion.div>
       )}
 
       {!submitted && (
-        <Button onClick={handleSubmit} disabled={!selected}>
+        <Button onClick={handleSubmit} disabled={!selected || checking} loading={checking}>
           Проверить ответ
         </Button>
       )}
@@ -224,7 +239,7 @@ function TheoryQuestion({ task }: { task: Task }) {
       {submitted && (
         <Button
           variant="secondary"
-          onClick={() => { setSelected(null); setSubmitted(false); }}
+          onClick={() => { setSelected(null); setSubmitted(false); setCorrectOptionId(null); setExplanation(''); }}
         >
           Попробовать снова
         </Button>

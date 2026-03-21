@@ -6,7 +6,7 @@ import { selectCurrentUser, selectIsAuthenticated } from '../../../features/auth
 import { selectAllUsers } from '../../../entities/user';
 import { PageTransition, GlassCard } from '../../../shared/ui';
 import { cn, timeAgo } from '../../../shared/lib';
-import { type ChatChannel, type ChatMessage } from '../../../shared/api/mocks/chat';
+import { type ChatChannel, type ChatMessage } from '../../../shared/types';
 import { apiClient } from '../../../shared/api/client';
 import { Link } from 'react-router-dom';
 

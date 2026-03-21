@@ -18,7 +18,7 @@ import {
 import { Link } from 'react-router-dom';
 import { PageTransition, Button,  Modal } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
-import { type ScheduleEvent, type EventType } from '../../../shared/api/mocks/schedule';
+import { type ScheduleEvent, type EventType } from '../../../shared/types';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectPurchasedIds } from '../../../features/buy-material/model/purchaseSlice';
 import { apiClient } from '../../../shared/api/client';

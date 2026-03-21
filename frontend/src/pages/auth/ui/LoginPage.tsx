@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, Star } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { loginAsync, selectIsAuthenticated, selectAuthLoading, selectAuthError, clearError } from '../../../features/auth';
-import { testUsers } from '../../../shared/api/mocks';
+import { type User } from '../../../shared/types';
+import { apiClient } from '../../../shared/api/client';
 import { PageTransition, GlassCard, GradientMesh, CodeCoinIcon, Badge } from '../../../shared/ui';
 import { useEffect, useState } from 'react';
 
@@ -17,6 +18,8 @@ export default function LoginPage() {
   const loading = useAppSelector(selectAuthLoading);
   const error = useAppSelector(selectAuthError);
   const [loggingIn, setLoggingIn] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
 
   useEffect(() => {
     if (isAuth) navigate('/');
@@ -26,7 +29,33 @@ export default function LoginPage() {
     return () => { dispatch(clearError()); };
   }, [dispatch]);
 
-  const handleLogin = async (user: typeof testUsers[0]) => {
+  useEffect(() => {
+    apiClient.getUsers()
+      .then((data) => {
+        const mapped: User[] = data.map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          username: u.username,
+          avatarUrl: u.avatar_url || u.avatarUrl || '',
+          bio: u.bio || '',
+          rating: u.rating || 0,
+          codeCoins: u.code_coins ?? u.codeCoins ?? 0,
+          level: u.level || 1,
+          levelTitle: u.level_title || u.levelTitle || 'Новичок',
+          techStack: u.tech_stack || u.techStack || [],
+          skills: u.skills || {},
+          achievementIds: u.achievement_ids || u.achievementIds || [],
+          joinedAt: u.joined_at || u.joinedAt || '',
+          uploadsCount: u.uploads_count ?? u.uploadsCount ?? 0,
+          purchasesCount: u.purchases_count ?? u.purchasesCount ?? 0,
+        }));
+        setUsers(mapped);
+      })
+      .catch(() => {})
+      .finally(() => setUsersLoading(false));
+  }, []);
+
+  const handleLogin = async (user: User) => {
     setLoggingIn(user.id);
     dispatch(clearError());
     try {
@@ -66,8 +95,13 @@ export default function LoginPage() {
             )}
           </div>
 
+          {usersLoading ? (
+            <p className="text-center text-white/30 text-sm">Загрузка пользователей...</p>
+          ) : users.length === 0 ? (
+            <p className="text-center text-white/30 text-sm">Пользователи не найдены</p>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {testUsers.map((user, i) => (
+            {users.map((user, i) => (
               <motion.div
                 key={user.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -113,6 +147,7 @@ export default function LoginPage() {
               </motion.div>
             ))}
           </div>
+          )}
         </div>
       </div>
     </PageTransition>

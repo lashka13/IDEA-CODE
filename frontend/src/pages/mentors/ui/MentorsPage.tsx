@@ -13,7 +13,7 @@ import { useAppSelector } from '../../../app/store/hooks';
 import { selectIsAuthenticated } from '../../../features/auth';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon, Modal } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
-import { type Mentor } from '../../../shared/api/mocks/mentors';
+import { type Mentor } from '../../../shared/types';
 import { apiClient } from '../../../shared/api/client';
 import { Link } from 'react-router-dom';
 

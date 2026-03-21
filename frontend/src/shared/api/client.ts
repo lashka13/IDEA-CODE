@@ -290,6 +290,13 @@ class ApiClient {
     return this.request<any>(`/tasks/${id}`);
   }
 
+  async checkTaskAnswer(taskId: string, answerId: string) {
+    return this.request<{ correct: boolean; correct_option_id: string; explanation: string }>(
+      `/tasks/${taskId}/check`,
+      { method: 'POST', body: JSON.stringify({ answer_id: answerId }) },
+    );
+  }
+
   // Challenges
   async getChallenges(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();

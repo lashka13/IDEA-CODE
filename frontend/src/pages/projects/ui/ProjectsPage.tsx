@@ -26,8 +26,8 @@ import {
   type ProjectTeamSlot,
   type ProjectRole,
   type ProjectStatus,
-} from '../../../shared/api/mocks/projects';
-import { type Mentor } from '../../../shared/api/mocks/mentors';
+  type Mentor,
+} from '../../../shared/types';
 import { apiClient } from '../../../shared/api/client';
 
 function ProjectCard({ project, mentors, onClick }: { project: Project; mentors: Mentor[]; onClick: () => void }) {
