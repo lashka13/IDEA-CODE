@@ -11,6 +11,20 @@ SYSTEM_PROMPT = """Ты — умный помощник по учебным ма
 Отвечай на том же языке, на котором задан вопрос."""
 
 
+def _sanitize_openrouter_messages(messages: list[dict]) -> list[dict]:
+    """Google AI Studio rejects requests if any message has empty string content."""
+    out: list[dict] = []
+    for m in messages:
+        content = m.get("content")
+        if not isinstance(content, str):
+            continue
+        text = content.strip()
+        if not text:
+            continue
+        out.append({"role": m["role"], "content": text})
+    return out
+
+
 def build_context(chunks: list[dict]) -> str:
     """Build context string from document chunks."""
     parts = []
@@ -29,6 +43,10 @@ async def call_openrouter(messages: list[dict], model: str | None = None) -> str
 
     model = model or settings.LLM_MODEL
 
+    messages = _sanitize_openrouter_messages(messages)
+    if not messages:
+        raise ValueError("No valid messages to send to OpenRouter (all contents empty)")
+
     async with httpx.AsyncClient(timeout=180.0) as client:
         resp = await client.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -43,6 +61,12 @@ async def call_openrouter(messages: list[dict], model: str | None = None) -> str
                 "temperature": 0.7,
             },
         )
+        if resp.is_error:
+            logger.error(
+                "OpenRouter error %s: %s",
+                resp.status_code,
+                resp.text[:2000],
+            )
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
