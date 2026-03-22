@@ -202,7 +202,14 @@ async def index_material(app, material: dict):
 
     for cid, text in zip(chunk_ids, chunk_texts):
         app.state.bm25_index.add_document(cid, text)
-    app.state.vector_index.add_documents_batch(chunk_ids, chunk_texts, chunk_metas)
+    try:
+        app.state.vector_index.add_documents_batch(chunk_ids, chunk_texts, chunk_metas)
+    except Exception as e:
+        logger.warning(
+            "Semantic (vector) indexing failed for material %s; BM25/keyword search still works: %s",
+            mat_id,
+            e,
+        )
     # Caller (startup sync or Kafka consumer) must call bm25_index.rebuild() once after batching.
 
     logger.info(f"Indexed material '{material.get('title', '')}' ({len(chunk_objs)} chunks)")
@@ -215,11 +222,21 @@ async def sync_content_on_startup(app):
         materials = await fetch_materials()
         logger.info(f"Fetched {len(materials)} materials from content_service")
         for mat in materials:
-            await index_material(app, mat)
-        app.state.bm25_index.rebuild()
+            try:
+                await index_material(app, mat)
+            except Exception as e:
+                logger.error(
+                    "Failed to index material %s: %s",
+                    mat.get("id"),
+                    e,
+                )
         logger.info(
             f"Content sync complete. BM25: {app.state.bm25_index.size} chunks, "
             f"Vector: {app.state.vector_index.count} chunks"
         )
     except Exception as e:
         logger.error(f"Content sync failed: {e}. Search index may be empty until content_service is available.")
+    finally:
+        # BM25 must call rebuild() after add_document(); if vector indexing failed mid-sync,
+        # rebuild was previously skipped and keyword search returned nothing.
+        app.state.bm25_index.rebuild()

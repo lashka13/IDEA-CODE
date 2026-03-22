@@ -64,8 +64,11 @@ async def start_kafka_consumer(app):
                     les_resp.raise_for_status()
                     material["_lessons"] = les_resp.json()
 
-                await index_material(app, material)
-                app.state.bm25_index.rebuild()
+                try:
+                    await index_material(app, material)
+                finally:
+                    # Same as startup sync: rebuild even if indexing raised after bm25 add_document.
+                    app.state.bm25_index.rebuild()
             except Exception as e:
                 logger.error(f"Error processing Kafka message: {e}")
     except Exception as e:

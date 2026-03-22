@@ -59,7 +59,8 @@ class VectorIndex:
                  openrouter_api_key: str = ""):
         # model_name must be an OpenRouter embedding model id, e.g. openai/text-embedding-3-small
         emb_model = (model_name or "").strip() or "openai/text-embedding-3-small"
-        self._embedder = OpenRouterEmbedder(api_key=openrouter_api_key, model=emb_model)
+        self._openrouter_key = (openrouter_api_key or "").strip()
+        self._embedder = OpenRouterEmbedder(api_key=self._openrouter_key, model=emb_model)
 
         self._client = chromadb.Client(ChromaSettings(
             anonymized_telemetry=False,
@@ -75,6 +76,8 @@ class VectorIndex:
         logger.info(f"ChromaDB collection '{COLLECTION_NAME}' ready (OpenRouter API embeddings)")
 
     def add_document(self, chunk_id: str, text: str, metadata: dict | None = None):
+        if not self._openrouter_key:
+            return
         existing = self._collection.get(ids=[chunk_id])
         if existing and existing["ids"]:
             return
@@ -102,6 +105,14 @@ class VectorIndex:
         if not new_ids:
             return
 
+        if not self._openrouter_key:
+            logger.warning(
+                "OPENROUTER_API_KEY is empty: skipping %d chunk(s) in vector index "
+                "(keyword/BM25 search still works)",
+                len(new_ids),
+            )
+            return
+
         batch_size = 32
         for start in range(0, len(new_ids), batch_size):
             end = start + batch_size
@@ -113,13 +124,17 @@ class VectorIndex:
 
     def search(self, query: str, top_k: int = 20) -> list[tuple[str, float, str]]:
         """Returns list of (chunk_id, distance, text) sorted by relevance."""
-        if self._collection.count() == 0:
+        if not self._openrouter_key or self._collection.count() == 0:
             return []
-        results = self._collection.query(
-            query_texts=[query],
-            n_results=min(top_k, self._collection.count()),
-            include=["documents", "distances"],
-        )
+        try:
+            results = self._collection.query(
+                query_texts=[query],
+                n_results=min(top_k, self._collection.count()),
+                include=["documents", "distances"],
+            )
+        except Exception as e:
+            logger.warning("Vector search query failed (falling back to BM25 only): %s", e)
+            return []
         if not results or not results["ids"] or not results["ids"][0]:
             return []
 
