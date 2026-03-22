@@ -86,7 +86,10 @@ function MentorCard({ mentor, onBook }: { mentor: Mentor; onBook: (m: Mentor) =>
         </div>
 
         {/* CTA */}
-        <div className="flex items-center justify-end pt-4 border-t border-white/[0.04] mt-auto">
+        <div className="flex items-center justify-between pt-4 border-t border-white/[0.04] mt-auto">
+          <span className="text-sm font-semibold text-white/60">
+            {mentor.pricePerHour.toLocaleString('ru-RU')} ₽<span className="text-[10px] text-white/30 font-normal">/час</span>
+          </span>
           <Button
             size="sm"
             variant={mentor.available ? 'primary' : 'secondary'}

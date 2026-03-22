@@ -189,9 +189,7 @@ export function Header() {
     { path: '/catalog', label: 'Кейсы' },
     { path: '/smart-search', label: 'Smart Search' },
     { path: '/tasks', label: 'Задачи' },
-    { path: '/growgrade', label: 'GrowGrade' },
     { path: '/mentors', label: 'Менторы' },
-    { path: '/projects', label: 'Проекты' },
   ];
 
   return (

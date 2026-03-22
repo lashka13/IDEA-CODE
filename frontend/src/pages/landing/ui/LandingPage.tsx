@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '../../../app/store/hooks';
-import { selectPopularMaterials, selectAllMaterials } from '../../../entities/material';
+import { selectPopularMaterials } from '../../../entities/material';
 import { selectTopAuthors, selectAllUsers } from '../../../entities/user';
 import { PageTransition, GradientMesh, TextReveal, Button, GlassCard, AnimatedCounter, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
@@ -12,7 +12,7 @@ export default function LandingPage() {
   const popularMaterials = useAppSelector(selectPopularMaterials);
   const topAuthors = useAppSelector(selectTopAuthors);
   const allUsers = useAppSelector(selectAllUsers);
-  const allMaterials = useAppSelector(selectAllMaterials);
+
 
   return (
     <PageTransition>
@@ -27,11 +27,11 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-sm text-white/60 mb-8"
           >
             <Sparkles size={14} className="text-accent-green" />
-            <span>Платформа для роста IT-специалистов</span>
+            <span>Образовательная платформа с AI-анализом мышления</span>
           </motion.div>
 
           <TextReveal as="h1" className="text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight mb-6" delay={0.2}>
-            Учись. Делись. Расти.
+            Учись. Практикуйся. Расти.
           </TextReveal>
 
           <motion.p
@@ -40,7 +40,7 @@ export default function LandingPage() {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="text-lg sm:text-xl text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Решай задачи, изучай кейсы менторов и прокачивай навыки вместе с сообществом
+            Быстрый доступ к слабым и сильным сторонам студента. Масштабирование дохода менторов — возможность зарабатывать без увеличения часов
           </motion.p>
 
           <motion.div
@@ -69,8 +69,8 @@ export default function LandingPage() {
             className="flex items-center justify-center gap-8 sm:gap-16 mt-16"
           >
             {[
-              { value: allMaterials.length || 1247, label: 'Материалов', suffix: '+' },
-              { value: allUsers.length || 342, label: 'Студентов' },
+              { value: 300, label: 'Материалов', suffix: '+' },
+              { value: 300, label: 'Студентов', suffix: '+' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-white">
@@ -164,7 +164,7 @@ export default function LandingPage() {
               Готов расти?
             </TextReveal>
             <p className="text-white/40 mb-8 max-w-md mx-auto">
-              Присоединяйся к платформе, решай задачи с AI-анализом и прокачивай навыки
+              Присоединяйся к платформе — решай задачи, изучай кейсы менторов и строй свой путь в IT
             </p>
             <Link to="/login">
               <Button size="lg" icon={<Sparkles size={18} />}>
