@@ -8,9 +8,6 @@ const CatalogPage = lazy(() => import('../../pages/catalog'));
 const MaterialDetailPage = lazy(() => import('../../pages/material-detail'));
 const CourseViewerPage = lazy(() => import('../../pages/course-viewer'));
 const AddMaterialPage = lazy(() => import('../../pages/add-material'));
-const CommunitiesPage = lazy(() => import('../../pages/communities'));
-const CommunityDetailPage = lazy(() => import('../../pages/community-detail'));
-const ChatPage = lazy(() => import('../../pages/chat'));
 const TasksPage = lazy(() => import('../../pages/tasks'));
 const MentorsPage = lazy(() => import('../../pages/mentors'));
 const ProjectsPage = lazy(() => import('../../pages/projects'));
@@ -50,9 +47,6 @@ export function AppRouter() {
           <Route path="/catalog/:id" element={<MaterialDetailPage />} />
           <Route path="/catalog/:id/learn" element={<CourseViewerPage />} />
           <Route path="/add-material" element={<AddMaterialPage />} />
-          <Route path="/communities" element={<CommunitiesPage />} />
-          <Route path="/communities/:slug" element={<CommunityDetailPage />} />
-          <Route path="/chat" element={<ChatPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/growgrade" element={<GrowGradePage />} />
           <Route path="/mentors" element={<MentorsPage />} />

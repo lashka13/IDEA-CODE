@@ -113,7 +113,7 @@ function MaterialCard({
               onClick={(e) => e.stopPropagation()}
               className="ml-auto text-[10px] text-white/25 hover:text-accent-cyan transition-colors flex items-center gap-0.5"
             >
-              В каталог <ChevronRight size={10} />
+              К кейсам <ChevronRight size={10} />
             </Link>
           </div>
         </div>

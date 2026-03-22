@@ -305,7 +305,7 @@ function NodeDetailPanel({ node, onClose }: { node: RoadmapNodeType; onClose: ()
                 className="flex items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-xs text-accent-cyan"
               >
                 <BookOpen size={12} />
-                <span className="flex-1">Перейти к курсу</span>
+                <span className="flex-1">Перейти к кейсу</span>
                 <ArrowRight size={10} />
               </Link>
             ))}

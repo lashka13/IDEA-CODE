@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, FileText, Code, Video, Presentation, Users, Hash, Sparkles } from 'lucide-react';
+import { Search, X, FileText, Code, Video, Presentation, Users, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllMaterials } from '../../../entities/material';
 import { selectAllUsers } from '../../../entities/user';
-import { selectAllCommunities } from '../../../entities/community';
 import { cn } from '../../../shared/lib';
 
 const FORMAT_ICONS: Record<string, any> = {
@@ -18,7 +17,6 @@ export function HeaderSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const navigate = useNavigate();
   const materials = useAppSelector(selectAllMaterials);
   const users = useAppSelector(selectAllUsers);
-  const communities = useAppSelector(selectAllCommunities);
 
   const results = useMemo(() => {
     if (!query.trim() || query.length < 2) return null;
@@ -32,14 +30,10 @@ export function HeaderSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       .filter((u) => u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
       .slice(0, 3);
 
-    const matchedCommunities = communities
-      .filter((c) => c.name.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q))
-      .slice(0, 3);
+    return { materials: matchedMaterials, users: matchedUsers };
+  }, [query, materials, users]);
 
-    return { materials: matchedMaterials, users: matchedUsers, communities: matchedCommunities };
-  }, [query, materials, users, communities]);
-
-  const hasResults = results && (results.materials.length + results.users.length + results.communities.length) > 0;
+  const hasResults = results && (results.materials.length + results.users.length) > 0;
 
   useEffect(() => {
     if (isOpen) {
@@ -88,7 +82,7 @@ export function HeaderSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   ref={inputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Поиск материалов, людей, сообществ..."
+                  placeholder="Поиск материалов и людей..."
                   className="flex-1 bg-transparent text-white text-sm py-3.5 outline-none placeholder-white/30"
                 />
                 <kbd className="hidden sm:flex items-center px-2 py-0.5 text-[10px] text-white/20 border border-white/[0.06] rounded">ESC</kbd>
@@ -151,29 +145,6 @@ export function HeaderSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         </div>
                       )}
 
-                      {/* Communities */}
-                      {results.communities.length > 0 && (
-                        <div className={cn('p-2', (results.materials.length > 0 || results.users.length > 0) && 'border-t border-white/[0.04]')}>
-                          <p className="text-[10px] font-bold uppercase text-white/20 px-2 py-1.5">Сообщества</p>
-                          {results.communities.map((comm) => (
-                            <button
-                              key={comm.id}
-                              onClick={() => go(`/communities/${comm.slug}`)}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.04] transition-colors"
-                            >
-                              <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center text-lg flex-shrink-0">
-                                {comm.iconEmoji}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm text-white">{comm.name}</p>
-                                <p className="text-xs text-white/30 flex items-center gap-1">
-                                  <Hash size={9} /> {comm.memberCount} участников
-                                </p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="py-8 text-center">
@@ -186,7 +157,7 @@ export function HeaderSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               {/* Hint when empty */}
               {!query && (
                 <div className="border-t border-white/[0.06] px-4 py-3">
-                  <p className="text-xs text-white/20">Начните вводить — поиск по материалам, людям и сообществам</p>
+                  <p className="text-xs text-white/20">Начните вводить — поиск по материалам и людям</p>
                 </div>
               )}
 

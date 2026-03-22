@@ -62,7 +62,7 @@ export default function MaterialDetailPage() {
       <PageTransition>
         <div className="max-w-7xl mx-auto px-4 pt-24 text-center py-32">
           <h1 className="text-2xl font-bold">Материал не найден</h1>
-          <Link to="/catalog" className="text-accent-cyan text-sm mt-4 inline-block">Вернуться в каталог</Link>
+          <Link to="/catalog" className="text-accent-cyan text-sm mt-4 inline-block">Вернуться к кейсам</Link>
         </div>
       </PageTransition>
     );
@@ -104,7 +104,7 @@ export default function MaterialDetailPage() {
     <PageTransition>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16">
         <Link to="/catalog" className="inline-flex items-center gap-2 text-sm text-white/30 hover:text-white/60 transition-colors mb-6">
-          <ArrowLeft size={14} /> Каталог
+          <ArrowLeft size={14} /> Кейсы
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -267,7 +267,7 @@ export default function MaterialDetailPage() {
               {isPurchased && hasLessons && (
                 <Link to={`/catalog/${material.id}/learn`} className="block mt-3">
                   <Button variant="primary" size="lg" icon={<Play size={16} />} className="w-full">
-                    Смотреть курс
+                    Открыть кейс
                   </Button>
                 </Link>
               )}

@@ -3,7 +3,6 @@ import { useAppDispatch } from '../store/hooks';
 import { restoreSession } from '../../features/auth';
 import { fetchMaterials } from '../../entities/material';
 import { fetchUsers } from '../../entities/user';
-import { fetchCommunities } from '../../entities/community';
 import { fetchAchievements } from '../../entities/achievement';
 import { fetchMyPurchases } from '../../features/buy-material';
 import { apiClient } from '../../shared/api/client';
@@ -21,7 +20,6 @@ export function DataLoader({ children }: { children: React.ReactNode }) {
     // Load data from API (falls back to mock data on failure)
     dispatch(fetchMaterials());
     dispatch(fetchUsers());
-    dispatch(fetchCommunities());
     dispatch(fetchAchievements());
   }, [dispatch]);
 

@@ -39,21 +39,6 @@ export interface User {
   purchasesCount: number;
 }
 
-export interface Community {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  coverUrl: string;
-  iconEmoji: string;
-  memberCount: number;
-  materialCount: number;
-  activityScore: number;
-  color: string;
-  tags: string[];
-  createdAt: string;
-}
-
 export interface Transaction {
   id: string;
   userId: string;
@@ -79,17 +64,6 @@ export interface Comment {
   authorId: string;
   text: string;
   rating: number;
-  createdAt: string;
-}
-
-export interface Post {
-  id: string;
-  communityId: string;
-  authorId: string;
-  title: string;
-  content: string;
-  likesCount: number;
-  commentsCount: number;
   createdAt: string;
 }
 
@@ -141,29 +115,6 @@ export interface CourseProgress {
   completed: boolean;
   quizScore?: number;
   quizTotal?: number;
-}
-
-// ── Chat ──────────────────────────────────────────────────────
-
-export interface ChatChannel {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  type: 'general' | 'topic';
-  topic?: string;
-  memberCount: number;
-  lastActivity: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  channelId: string;
-  authorId: string;
-  text: string;
-  createdAt: string;
-  replyTo?: string;
-  reactions?: { emoji: string; count: number }[];
 }
 
 // ── Mentors ───────────────────────────────────────────────────

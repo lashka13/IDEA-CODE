@@ -186,10 +186,8 @@ export function Header() {
   }, [location.pathname]);
 
   const navItems = [
-    { path: '/catalog', label: 'Каталог' },
+    { path: '/catalog', label: 'Кейсы' },
     { path: '/smart-search', label: 'Smart Search' },
-    { path: '/communities', label: 'Сообщества' },
-    { path: '/chat', label: 'Чат' },
     { path: '/tasks', label: 'Задачи' },
     { path: '/growgrade', label: 'GrowGrade' },
     { path: '/mentors', label: 'Менторы' },
@@ -213,9 +211,9 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-green to-accent-cyan flex items-center justify-center">
-              <span className="text-surface-900 font-bold text-sm">IT</span>
+              <span className="text-surface-900 font-bold text-sm">GG</span>
             </div>
             <span className="text-lg font-bold hidden sm:block">
               <span className="text-white group-hover:text-gradient transition-all duration-300">{APP_NAME}</span>
@@ -223,13 +221,13 @@ export function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-center min-w-0">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200',
+                  'px-2 xl:px-3 py-1.5 rounded-xl text-xs xl:text-sm font-medium transition-all duration-200 whitespace-nowrap',
                   location.pathname.startsWith(item.path)
                     ? 'text-white bg-white/[0.06]'
                     : 'text-white/50 hover:text-white hover:bg-white/[0.03]'
@@ -241,7 +239,7 @@ export function Header() {
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Search */}
             <button
               onClick={() => setSearchOpen(true)}
@@ -319,7 +317,7 @@ export function Header() {
             {/* Mobile menu */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
+              className="lg:hidden p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
             >
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -334,7 +332,7 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-surface-900/95 backdrop-blur-xl border-t border-white/[0.06]"
+            className="lg:hidden bg-surface-900/95 backdrop-blur-xl border-t border-white/[0.06]"
           >
             <div className="px-4 py-3 space-y-1">
               {navItems.map((item) => (

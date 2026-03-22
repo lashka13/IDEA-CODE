@@ -11,7 +11,7 @@ export function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-green to-accent-cyan flex items-center justify-center">
-                <span className="text-surface-900 font-bold text-sm">IT</span>
+                <span className="text-surface-900 font-bold text-sm">GG</span>
               </div>
               <span className="text-lg font-bold text-white">{APP_NAME}</span>
             </div>
@@ -25,8 +25,8 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white/60 mb-3">Платформа</h4>
             <div className="space-y-2">
-              <Link to="/catalog" className="block text-sm text-white/30 hover:text-white/60 transition-colors">Каталог</Link>
-              <Link to="/communities" className="block text-sm text-white/30 hover:text-white/60 transition-colors">Сообщества</Link>
+              <Link to="/catalog" className="block text-sm text-white/30 hover:text-white/60 transition-colors">Кейсы</Link>
+              <Link to="/tasks" className="block text-sm text-white/30 hover:text-white/60 transition-colors">Задачи</Link>
               <Link to="/wallet" className="block text-sm text-white/30 hover:text-white/60 transition-colors">Кошелёк</Link>
             </div>
           </div>

@@ -159,22 +159,6 @@ class ApiClient {
     return this.request<{ purchased: boolean }>(`/materials/${id}/is-purchased`);
   }
 
-  // Communities
-  async getCommunities() {
-    return this.request<any[]>('/communities/');
-  }
-
-  async getCommunity(slug: string) {
-    return this.request<any>(`/communities/${slug}`);
-  }
-
-  async joinCommunity(slug: string) {
-    return this.request<any>(`/communities/${slug}/join`, { method: 'POST' });
-  }
-
-  async leaveCommunity(slug: string) {
-    return this.request<any>(`/communities/${slug}/leave`, { method: 'POST' });
-  }
 
   // Transactions
   async getTransactions() {
@@ -210,23 +194,6 @@ class ApiClient {
     });
   }
 
-  // Posts
-  async getPosts(communitySlug: string) {
-    return this.request<any[]>(`/communities/${communitySlug}/posts/`);
-  }
-
-  async createPost(communitySlug: string, data: { title: string; content: string }) {
-    return this.request<any>(`/communities/${communitySlug}/posts/`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async togglePostLike(communitySlug: string, postId: string) {
-    return this.request<{ liked: boolean; likes_count: number }>(`/communities/${communitySlug}/posts/${postId}/like`, {
-      method: 'POST',
-    });
-  }
 
   // Lessons
   async getLessons(materialId: string) {
@@ -257,28 +224,6 @@ class ApiClient {
     return this.request<any>(`/notifications/${id}/read`, { method: 'POST' });
   }
 
-  // Chat
-  async getChannels() {
-    return this.request<any[]>('/chat/channels/');
-  }
-
-  async getMessages(channelId: string, limit = 50) {
-    return this.request<any[]>(`/chat/channels/${channelId}/messages?limit=${limit}`);
-  }
-
-  async sendMessage(channelId: string, data: { text: string; reply_to_id?: string }) {
-    return this.request<any>(`/chat/channels/${channelId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async toggleReaction(messageId: string, emoji: string) {
-    return this.request<any>(`/chat/messages/${messageId}/reactions`, {
-      method: 'POST',
-      body: JSON.stringify({ emoji }),
-    });
-  }
 
   // Tasks
   async getTasks(params: Record<string, string> = {}) {
@@ -460,13 +405,6 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
-  }
-
-  // WebSocket
-  createChatWebSocket(channelId: string) {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    return new WebSocket(`${protocol}//${host}/api/ws/chat/${channelId}?token=${this.token}`);
   }
 
   logout() {

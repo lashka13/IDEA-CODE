@@ -199,9 +199,9 @@ function EventDetail({ event, }: { event: ScheduleEvent; onClose: () => void }) 
         <Button className="w-full" icon={<Calendar size={14} />}>Записаться</Button>
       ) : (
         <div className="text-center">
-          <p className="text-xs text-white/25 mb-3">Доступно после покупки курса</p>
+          <p className="text-xs text-white/25 mb-3">Доступно после покупки кейса</p>
           <Link to={`/catalog/${event.materialId.replace('mat-', '')}`}>
-            <Button className="w-full" variant="secondary">Перейти к курсу</Button>
+            <Button className="w-full" variant="secondary">Перейти к кейсу</Button>
           </Link>
         </div>
       )}
@@ -270,7 +270,7 @@ export default function SchedulePage() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold mb-1">Расписание</h1>
-            <p className="text-sm text-white/40">Стримы, вебинары и воркшопы от авторов курсов</p>
+            <p className="text-sm text-white/40">Стримы, вебинары и воркшопы от менторов</p>
           </div>
           {liveCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20">

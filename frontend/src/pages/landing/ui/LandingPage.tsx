@@ -1,22 +1,18 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Users, TrendingUp } from 'lucide-react';
+import { ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectPopularMaterials, selectAllMaterials } from '../../../entities/material';
-import { selectActiveCommunities, selectAllCommunities } from '../../../entities/community';
 import { selectTopAuthors, selectAllUsers } from '../../../entities/user';
 import { PageTransition, GradientMesh, TextReveal, Button, GlassCard, AnimatedCounter, StaggerContainer, staggerItemVariants, CodeCoinIcon } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { MaterialCard } from '../../../entities/material/ui/MaterialCard';
-import { CommunityCard } from '../../../entities/community/ui/CommunityCard';
 
 export default function LandingPage() {
   const popularMaterials = useAppSelector(selectPopularMaterials);
-  const activeCommunities = useAppSelector(selectActiveCommunities);
   const topAuthors = useAppSelector(selectTopAuthors);
   const allUsers = useAppSelector(selectAllUsers);
   const allMaterials = useAppSelector(selectAllMaterials);
-  const allCommunities = useAppSelector(selectAllCommunities);
 
   return (
     <PageTransition>
@@ -56,12 +52,12 @@ export default function LandingPage() {
           >
             <Link to="/catalog">
               <Button size="lg" icon={<ArrowRight size={18} />}>
-                Открыть каталог
+                Кейсы менторов
               </Button>
             </Link>
-            <Link to="/communities">
+            <Link to="/tasks">
               <Button variant="secondary" size="lg">
-                Сообщества
+                Задачи
               </Button>
             </Link>
           </motion.div>
@@ -76,7 +72,6 @@ export default function LandingPage() {
             {[
               { value: allMaterials.length || 1247, label: 'Материалов', suffix: '+' },
               { value: allUsers.length || 342, label: 'Студентов' },
-              { value: allCommunities.length || 7, label: 'Сообществ' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-white">
@@ -109,13 +104,13 @@ export default function LandingPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <TextReveal as="h2" className="text-2xl sm:text-3xl font-bold">
-              Популярное сегодня
+              Популярные кейсы
             </TextReveal>
-            <p className="text-white/30 text-sm mt-2">Самые востребованные материалы</p>
+            <p className="text-white/30 text-sm mt-2">Самые востребованные кейсы от менторов</p>
           </div>
           <Link to="/catalog">
             <Button variant="ghost" size="sm" icon={<ArrowRight size={14} />}>
-              Все материалы
+              Все кейсы
             </Button>
           </Link>
         </div>
@@ -128,45 +123,18 @@ export default function LandingPage() {
         </StaggerContainer>
       </section>
 
-      {/* Active Communities */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Users size={18} className="text-accent-cyan" />
-              <TextReveal as="h2" className="text-2xl sm:text-3xl font-bold">
-                Активные сообщества
-              </TextReveal>
-            </div>
-            <p className="text-white/30 text-sm">Присоединяйся к IT-кластерам по интересам</p>
-          </div>
-          <Link to="/communities">
-            <Button variant="ghost" size="sm" icon={<ArrowRight size={14} />}>
-              Все сообщества
-            </Button>
-          </Link>
-        </div>
-        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeCommunities.map((community) => (
-            <motion.div key={community.id} variants={staggerItemVariants}>
-              <CommunityCard community={community} />
-            </motion.div>
-          ))}
-        </StaggerContainer>
-      </section>
-
-      {/* Top Authors */}
+      {/* Top Mentors */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <div className="flex items-center gap-2 mb-8">
           <TrendingUp size={18} className="text-accent-green" />
           <TextReveal as="h2" className="text-2xl sm:text-3xl font-bold">
-            Топ авторов недели
+            Топ менторов
           </TextReveal>
         </div>
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {topAuthors.map((author, i) => (
-            <motion.div key={author.id} variants={staggerItemVariants}>
-              <Link to={`/profile/${author.id}`}>
+          {topAuthors.map((mentor, i) => (
+            <motion.div key={mentor.id} variants={staggerItemVariants}>
+              <Link to={`/profile/${mentor.id}`}>
                 <GlassCard className="text-center group cursor-pointer" glow={i === 0 ? 'green' : 'none'}>
                   <div className={cn(
                     'w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-sm font-bold',
@@ -177,14 +145,14 @@ export default function LandingPage() {
                   )}>
                     #{i + 1}
                   </div>
-                  <img src={author.avatarUrl} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-3 group-hover:scale-105 transition-transform" />
-                  <p className="text-sm font-semibold truncate">{author.name}</p>
-                  <p className="text-xs text-white/30 mt-0.5">@{author.username}</p>
+                  <img src={mentor.avatarUrl} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-3 group-hover:scale-105 transition-transform" />
+                  <p className="text-sm font-semibold truncate">{mentor.name}</p>
+                  <p className="text-xs text-white/30 mt-0.5">@{mentor.username}</p>
                   <div className="flex items-center justify-center gap-1 mt-2 text-accent-green text-xs font-medium">
                     <CodeCoinIcon size={12} />
-                    <AnimatedCounter value={author.codeCoins} />
+                    <AnimatedCounter value={mentor.codeCoins} />
                   </div>
-                  <p className="text-[10px] text-white/20 mt-1">{author.uploadsCount} материалов</p>
+                  <p className="text-[10px] text-white/20 mt-1">{mentor.uploadsCount} кейсов</p>
                 </GlassCard>
               </Link>
             </motion.div>
