@@ -14,8 +14,21 @@ class Settings(BaseSettings):
     SEARCH_INDEX_SECRET: str = "search-service-internal"
     HUGGINGFACE_API_KEY: str = ""
     OPENROUTER_API_KEY: str = ""
+    # Embeddings (Chroma) still use OpenRouter /v1/embeddings when OPENROUTER_API_KEY is set.
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
+    # LLM: prefer OpenAI-compatible API (e.g. Pollinations) when OPENAI_API_KEY is set.
+    OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = "https://gen.pollinations.ai/v1"
+    OPENAI_MODEL: str = "openai"
+    # Fallback LLM via OpenRouter if OPENAI_API_KEY is empty.
     LLM_MODEL: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    # Speed vs quality: lower max_tokens and context = faster responses (especially free APIs).
+    LLM_MAX_TOKENS: int = 512
+    LLM_TEMPERATURE: float = 0.5
+    # How many retrieval chunks to send to the LLM (default 8; was 12).
+    RAG_CHUNK_LIMIT: int = 8
+    # Truncate each chunk in the prompt (0 = no truncation). ~700–900 chars is a good balance.
+    RAG_MAX_CHUNK_CHARS: int = 900
     CHROMA_PERSIST_DIR: str = "/app/chroma_data"
 
     @property

@@ -8,14 +8,14 @@ from src.documents.models import DocumentChunk, Document
 from src.assistant.schemas import AskRequest, AskResponse
 from src.assistant.rag import generate_answer
 from src.search.hybrid import hybrid_search
+from src.conf import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/assistant", tags=["assistant"])
 
-# How many chunk texts to pass to the LLM (scoped or global retrieval).
-RAG_CHUNK_LIMIT = 12
+_settings = get_settings()
 # Broader hybrid fetch when filtering to selected documents, then cut to RAG_CHUNK_LIMIT.
-HYBRID_FETCH_FOR_SCOPED = 48
+HYBRID_FETCH_FOR_SCOPED = max(48, _settings.RAG_CHUNK_LIMIT * 6)
 
 
 def _append_chunk(
@@ -45,6 +45,7 @@ async def ask_assistant(
 
     bm25_index = request.app.state.bm25_index
     vector_index = request.app.state.vector_index
+    rag_limit = _settings.RAG_CHUNK_LIMIT
 
     if body.document_ids:
         allowed = set(body.document_ids)
@@ -67,7 +68,7 @@ async def ask_assistant(
                     continue
                 chunk, doc = chunk_map[cid]
                 _append_chunk(context_chunks, source_ids, chunk, doc)
-                if len(context_chunks) >= RAG_CHUNK_LIMIT:
+                if len(context_chunks) >= rag_limit:
                     break
 
         # No relevant chunks in selected docs for this query — use beginning of those documents.
@@ -77,7 +78,7 @@ async def ask_assistant(
                 .join(Document, DocumentChunk.document_id == Document.id)
                 .where(DocumentChunk.document_id.in_(allowed))
                 .order_by(DocumentChunk.document_id, DocumentChunk.chunk_index)
-                .limit(RAG_CHUNK_LIMIT),
+                .limit(rag_limit),
             )
             for chunk, doc in result.all():
                 _append_chunk(context_chunks, source_ids, chunk, doc)
@@ -105,6 +106,8 @@ async def ask_assistant(
                     })
                     if doc.id not in source_ids:
                         source_ids.append(doc.id)
+                    if len(context_chunks) >= rag_limit:
+                        break
 
     history = [{"role": m.role, "content": m.content} for m in body.history] if body.history else None
 

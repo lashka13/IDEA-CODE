@@ -7,12 +7,11 @@ from sqlalchemy import select, desc
 from src.db import get_db
 from src.tasks.models import Task, ThinkingAnalysis
 from src.utils import get_current_user_id
+from src.llm_client import chat_completion, llm_chat_configured
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 PISTON_URL = os.getenv("PISTON_URL", "http://piston:2000")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
 
 # Piston language mapping: frontend value → (language, version)
 LANGUAGE_MAP = {
@@ -129,7 +128,7 @@ async def get_thinking_summary(
     all_patterns = Counter(p for a in analyses for p in (a.patterns or []))
 
     ai_summary = None
-    if total >= 2 and OPENROUTER_API_KEY:
+    if total >= 2 and llm_chat_configured():
         summaries_text = "\n".join(
             f"- Задача '{a.task_title}' ({a.task_difficulty}): оценка {a.thinking_score}/10, уровень {a.thinking_level}. {a.summary}"
             for a in analyses[:10]
@@ -155,22 +154,15 @@ async def get_thinking_summary(
 Отвечай на русском, кратко и по делу."""
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                resp = await client.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
-                    json={
-                        "model": LLM_MODEL,
-                        "messages": [
-                            {"role": "system", "content": "Ты — AI-аналитик когнитивного развития на платформе GrowGrade."},
-                            {"role": "user", "content": prompt},
-                        ],
-                        "max_tokens": 500,
-                        "temperature": 0.4,
-                    },
-                )
-                resp.raise_for_status()
-                ai_summary = resp.json()["choices"][0]["message"]["content"]
+            ai_summary = await chat_completion(
+                [
+                    {"role": "system", "content": "Ты — AI-аналитик когнитивного развития на платформе GrowGrade."},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=500,
+                temperature=0.4,
+                timeout=30.0,
+            )
         except Exception:
             pass
 
@@ -419,13 +411,13 @@ async def review_code(
     body: ReviewCodeRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """AI code review using OpenRouter LLM."""
+    """AI code review (OpenAI-compatible or OpenRouter)."""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if not OPENROUTER_API_KEY:
+    if not llm_chat_configured():
         raise HTTPException(status_code=503, detail="AI review unavailable: no API key")
 
     prompt = f"""Ты — опытный Senior-разработчик и ментор. Проанализируй решение задачи и дай краткий, полезный фидбек.
@@ -449,26 +441,15 @@ async def review_code(
 Отвечай кратко, по делу, на русском. Максимум 300 слов."""
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": LLM_MODEL,
-                    "messages": [
-                        {"role": "system", "content": "Ты — AI-ментор на образовательной платформе для IT-специалистов."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "max_tokens": 800,
-                    "temperature": 0.5,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            review = data["choices"][0]["message"]["content"]
+        review = await chat_completion(
+            [
+                {"role": "system", "content": "Ты — AI-ментор на образовательной платформе для IT-специалистов."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=800,
+            temperature=0.5,
+            timeout=60.0,
+        )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI review failed: {str(e)}")
 
@@ -495,7 +476,7 @@ async def analyze_thinking(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if not OPENROUTER_API_KEY:
+    if not llm_chat_configured():
         raise HTTPException(status_code=503, detail="AI analysis unavailable: no API key")
 
     minutes = body.time_spent_seconds // 60
@@ -548,57 +529,44 @@ async def analyze_thinking(
 Отвечай ТОЛЬКО валидным JSON, без дополнительного текста."""
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": LLM_MODEL,
-                    "messages": [
-                        {"role": "system", "content": "Ты — AI-аналитик когнитивных процессов разработчиков на платформе GrowGrade. Отвечай только валидным JSON."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "max_tokens": 1200,
-                    "temperature": 0.3,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            raw = data["choices"][0]["message"]["content"]
+        raw = await chat_completion(
+            [
+                {"role": "system", "content": "Ты — AI-аналитик когнитивных процессов разработчиков на платформе GrowGrade. Отвечай только валидным JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=1200,
+            temperature=0.3,
+            timeout=60.0,
+        )
 
-            # Try to parse JSON from response
-            import json as json_mod
-            # Strip markdown code fences if present
-            clean = raw.strip()
-            if clean.startswith("```"):
-                clean = clean.split("\n", 1)[1] if "\n" in clean else clean[3:]
-                if clean.endswith("```"):
-                    clean = clean[:-3]
-                clean = clean.strip()
+        # Try to parse JSON from response
+        import json as json_mod
+        clean = raw.strip()
+        if clean.startswith("```"):
+            clean = clean.split("\n", 1)[1] if "\n" in clean else clean[3:]
+            if clean.endswith("```"):
+                clean = clean[:-3]
+            clean = clean.strip()
 
-            try:
-                analysis = json_mod.loads(clean)
-            except json_mod.JSONDecodeError:
-                # If JSON parsing fails, return raw text as summary
-                analysis = {
-                    "thinking_score": 5,
-                    "thinking_level": "Middle",
-                    "summary": raw[:500],
-                    "strengths": [],
-                    "weaknesses": [],
-                    "patterns": [],
-                    "recommendations": [],
-                    "cognitive_metrics": {
-                        "problem_decomposition": 5,
-                        "hypothesis_testing": 5,
-                        "abstraction_level": 5,
-                        "debugging_approach": 5,
-                        "time_management": 5,
-                    },
-                }
+        try:
+            analysis = json_mod.loads(clean)
+        except json_mod.JSONDecodeError:
+            analysis = {
+                "thinking_score": 5,
+                "thinking_level": "Middle",
+                "summary": raw[:500],
+                "strengths": [],
+                "weaknesses": [],
+                "patterns": [],
+                "recommendations": [],
+                "cognitive_metrics": {
+                    "problem_decomposition": 5,
+                    "hypothesis_testing": 5,
+                    "abstraction_level": 5,
+                    "debugging_approach": 5,
+                    "time_management": 5,
+                },
+            }
 
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI analysis failed: {str(e)}")

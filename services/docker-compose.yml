@@ -157,6 +157,9 @@ services:
       PISTON_URL: http://piston:2000
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://gen.pollinations.ai/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-openai}
     depends_on:
       postgres:
         condition: service_healthy
@@ -277,8 +280,15 @@ services:
       HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       EMBEDDING_MODEL: openai/text-embedding-3-small
-      # Stable free tier for RAG answers (nemotron often rate-limits or errors)
+      # LLM: OPENAI_* (e.g. Pollinations) preferred; else OpenRouter chat with LLM_MODEL
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://gen.pollinations.ai/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-openai}
       LLM_MODEL: ${LLM_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-512}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.5}
+      RAG_CHUNK_LIMIT: ${RAG_CHUNK_LIMIT:-8}
+      RAG_MAX_CHUNK_CHARS: ${RAG_MAX_CHUNK_CHARS:-900}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:

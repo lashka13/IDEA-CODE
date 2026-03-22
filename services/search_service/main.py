@@ -2,8 +2,14 @@ import os
 
 # ChromaDB reads this at import time; helps avoid noisy PostHog telemetry errors in logs.
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
-# OpenRouter RAG chat model (override with LLM_MODEL in services/.env).
+# OpenAI-compatible LLM (Pollinations etc.); OpenRouter LLM fallback: LLM_MODEL in .env.
+os.environ.setdefault("OPENAI_BASE_URL", "https://gen.pollinations.ai/v1")
+os.environ.setdefault("OPENAI_MODEL", "openai")
 os.environ.setdefault("LLM_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
+os.environ.setdefault("LLM_MAX_TOKENS", "512")
+os.environ.setdefault("LLM_TEMPERATURE", "0.5")
+os.environ.setdefault("RAG_CHUNK_LIMIT", "8")
+os.environ.setdefault("RAG_MAX_CHUNK_CHARS", "900")
 
 import asyncio
 import logging
@@ -32,7 +38,16 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
 
     app.state.bm25_index = BM25Index()
-    logger.info("OpenRouter LLM model: %s", settings.LLM_MODEL)
+    logger.info(
+        "LLM: OPENAI_MODEL=%s base=%s max_tokens=%s | OpenRouter fallback LLM_MODEL=%s | "
+        "RAG chunks=%s max_chars/chunk=%s",
+        settings.OPENAI_MODEL,
+        settings.OPENAI_BASE_URL,
+        settings.LLM_MAX_TOKENS,
+        settings.LLM_MODEL,
+        settings.RAG_CHUNK_LIMIT,
+        settings.RAG_MAX_CHUNK_CHARS,
+    )
     if not settings.OPENROUTER_API_KEY:
         logger.warning(
             "OPENROUTER_API_KEY is empty: semantic search (embeddings) will fail or degrade. "
