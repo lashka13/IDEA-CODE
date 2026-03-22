@@ -669,10 +669,10 @@ export default function AddMaterialPage() {
               </motion.div>
               <h2 className="text-2xl font-bold mb-2">Материал отправлен!</h2>
               <p className="text-sm text-white/40 mb-6">
-                «{title}» отправлен на модерацию. После проверки он появится в каталоге.
+                «{title}» отправлен на модерацию. После проверки он появится среди кейсов.
               </p>
               <div className="flex gap-3 justify-center">
-                <Button onClick={() => navigate('/catalog')}>В каталог</Button>
+                <Button onClick={() => navigate('/catalog')}>К кейсам</Button>
                 <Button variant="secondary" onClick={() => window.location.reload()}>Загрузить ещё</Button>
               </div>
             </GlassCard>
@@ -692,7 +692,7 @@ export default function AddMaterialPage() {
               to="/catalog"
               className="inline-flex items-center gap-2 text-sm text-white/30 hover:text-white/60 transition-colors mb-3"
             >
-              <ArrowLeft size={14} /> Каталог
+              <ArrowLeft size={14} /> Кейсы
             </Link>
             <h1 className="text-2xl font-bold">Создать материал</h1>
             <p className="text-sm text-white/40 mt-1">

@@ -613,7 +613,7 @@ export default function CourseViewerPage() {
         {/* Progress bar */}
         <div className="mb-6">
           <div className="flex items-center justify-between text-xs text-white/30 mb-2">
-            <span>Прогресс курса</span>
+            <span>Прогресс кейса</span>
             <span>
               {completedCount}/{lessons.length} уроков · {progressPct}%
             </span>

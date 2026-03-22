@@ -149,7 +149,7 @@ export default function SmartSearchPage() {
             <h1 className="text-3xl sm:text-4xl font-bold">Smart Search</h1>
           </div>
           <p className="text-white/30 text-sm max-w-xl mx-auto">
-            Поиск и ответы только по материалам каталога (content_service). Новые материалы индексируются автоматически.
+            Поиск и ответы по всем кейсам менторов. Новые материалы индексируются автоматически.
           </p>
         </div>
 
@@ -180,7 +180,7 @@ export default function SmartSearchPage() {
 
           <div className="flex justify-end mt-3">
             <span className="text-xs text-white/20">
-              BM25 + Semantic · индекс = материалы каталога
+              BM25 + Semantic · индекс = кейсы менторов
             </span>
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function SmartSearchPage() {
                 <p className="text-white/20 text-sm mt-1">Попробуйте другие ключевые слова или загрузите PDF</p>
                 <div className="mt-6">
                   <Button size="sm" variant="secondary" onClick={openChat} icon={<MessageSquare size={14} />}>
-                    Чат с AI (весь каталог)
+                    Чат с AI (все кейсы)
                   </Button>
                   <p className="text-[11px] text-white/20 mt-2">Без привязки к найденным документам</p>
                 </div>
@@ -246,7 +246,7 @@ export default function SmartSearchPage() {
                   </div>
                 </div>
                 <p className="text-[11px] text-white/25 mb-3">
-                  Отметьте чекбоксы — ответы будут только по выбранным документам. Без выбора используется поиск по всему каталогу.
+                  Отметьте чекбоксы — ответы будут только по выбранным документам. Без выбора используется поиск по всем кейсам.
                 </p>
                 <div className="space-y-3">
                   {docResults.map((doc, idx) => {
@@ -357,7 +357,7 @@ export default function SmartSearchPage() {
                       <p className="text-sm font-medium text-white truncate">
                         {ragDocIds.length > 0
                           ? `Контекст: ${ragDocIds.length} док.`
-                          : 'Контекст: весь каталог'}
+                          : 'Контекст: все кейсы'}
                       </p>
                       <p className="text-[10px] text-white/30 line-clamp-2">
                         {ragDocIds.length > 0
@@ -382,7 +382,7 @@ export default function SmartSearchPage() {
                           Задайте вопрос
                           {ragDocIds.length > 0
                             ? ' — учтём только выбранные документы'
-                            : ' — контекст подберётся по запросу по всему каталогу'}
+                            : ' — контекст подберётся по запросу по всем кейсам'}
                         </p>
                         <div className="flex flex-wrap gap-2 justify-center mt-4">
                           {['О чём этот документ?', 'Объясни подробнее', 'Приведи примеры'].map((q) => (

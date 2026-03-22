@@ -16,8 +16,8 @@ export function Footer() {
               <span className="text-lg font-bold text-white">{APP_NAME}</span>
             </div>
             <p className="text-sm text-white/40 max-w-md leading-relaxed">
-              Платформа обмена знаниями для IT-студентов. Делись конспектами, зарабатывай CodeCoins,
-              прокачивай навыки вместе с сообществом.
+              Платформа для роста IT-специалистов. Решай задачи, изучай кейсы менторов,
+              прокачивай навыки с AI-анализом мышления.
             </p>
           </div>
 

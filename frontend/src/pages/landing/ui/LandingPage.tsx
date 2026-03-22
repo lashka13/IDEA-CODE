@@ -27,7 +27,7 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-sm text-white/60 mb-8"
           >
             <Sparkles size={14} className="text-accent-green" />
-            <span>Платформа обмена знаниями для IT-студентов</span>
+            <span>Платформа для роста IT-специалистов</span>
           </motion.div>
 
           <TextReveal as="h1" className="text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tight mb-6" delay={0.2}>
@@ -40,8 +40,8 @@ export default function LandingPage() {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="text-lg sm:text-xl text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Обменивайся конспектами, зарабатывай <span className="text-accent-green">CodeCoins</span>,
-            присоединяйся к IT-сообществам и прокачивай навыки вместе
+            Решай задачи, изучай кейсы менторов, зарабатывай <span className="text-accent-green">CodeCoins</span>{' '}
+            и прокачивай навыки вместе
           </motion.p>
 
           <motion.div
@@ -166,10 +166,10 @@ export default function LandingPage() {
           <GradientMesh />
           <div className="relative z-10">
             <TextReveal as="h2" className="text-3xl sm:text-4xl font-bold mb-4">
-              Готов делиться знаниями?
+              Готов расти?
             </TextReveal>
             <p className="text-white/40 mb-8 max-w-md mx-auto">
-              Присоединяйся к платформе, загружай свои конспекты и зарабатывай CodeCoins
+              Присоединяйся к платформе, решай задачи с AI-анализом и прокачивай навыки
             </p>
             <Link to="/login">
               <Button size="lg" icon={<Sparkles size={18} />}>

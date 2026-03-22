@@ -147,7 +147,7 @@ function SearchSkeleton() {
 // ---------------------------------------------------------------------------
 
 const EXAMPLE_QUERIES = [
-  'конспект по матанализу, тема ряды',
+  'матанализ, тема ряды',
   'решающие деревья',
   'функциональный анализ',
   'временные ряды машинное обучение',
@@ -251,7 +251,7 @@ export default function AISearchPage() {
             AI-поиск по материалам
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">
-            Найди нужный конспект
+            Найди нужный материал
           </h1>
           <p className="text-white/40 text-sm max-w-lg mx-auto">
             Опиши что тебе нужно — ассистент найдёт релевантные материалы и ответит на твои вопросы по документу
@@ -272,7 +272,7 @@ export default function AISearchPage() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Например: конспект по матанализу на тему ряды…"
+              placeholder="Например: матанализ на тему ряды…"
               className="w-full pl-11 pr-28 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-2xl text-sm text-white placeholder-white/25 outline-none focus:border-accent-green/40 focus:bg-white/[0.06] transition-all"
             />
             <button
