@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import String, Integer, Float, Boolean, JSON, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 from src.db import Base
@@ -23,4 +24,20 @@ class MentorProfile(Base):
     available: Mapped[bool] = mapped_column(Boolean, default=True)
     specializations: Mapped[list] = mapped_column(JSON, default=list)
     languages: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class MentorBooking(Base):
+    __tablename__ = "mentor_bookings"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: f"booking-{uuid.uuid4().hex[:8]}")
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    mentor_id: Mapped[str] = mapped_column(String, index=True)
+    mentor_name: Mapped[str] = mapped_column(String(200))
+    topic: Mapped[str] = mapped_column(String(200))
+    date: Mapped[str] = mapped_column(String(30))
+    time: Mapped[str] = mapped_column(String(10))
+    comment: Mapped[str] = mapped_column(String(1000), default="")
+    price: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, confirmed, completed, cancelled
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

@@ -9,8 +9,8 @@ import {
   Filter,
   Search,
 } from 'lucide-react';
-import { useAppSelector } from '../../../app/store/hooks';
-import { selectIsAuthenticated } from '../../../features/auth';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { selectIsAuthenticated, selectCurrentUser, updateCoins } from '../../../features/auth';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon, Modal } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { type Mentor } from '../../../shared/types';
@@ -106,13 +106,17 @@ function MentorCard({ mentor, onBook }: { mentor: Mentor; onBook: (m: Mentor) =>
 }
 
 export default function MentorsPage() {
+  const dispatch = useAppDispatch();
   const isAuth = useAppSelector(selectIsAuthenticated);
+  const currentUser = useAppSelector(selectCurrentUser);
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSpec, setFilterSpec] = useState<string | null>(null);
   const [bookingMentor, setBookingMentor] = useState<Mentor | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState('');
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [bookingTopic, setBookingTopic] = useState('Подготовка к собеседованию');
@@ -176,8 +180,24 @@ export default function MentorsPage() {
     setBookingComment('');
   };
 
-  const confirmBooking = () => {
-    setBookingConfirmed(true);
+  const confirmBooking = async () => {
+    if (!bookingMentor) return;
+    setBookingLoading(true);
+    setBookingError('');
+    try {
+      await apiClient.bookMentor(bookingMentor.id, {
+        topic: bookingTopic,
+        date: bookingDate,
+        time: bookingTime,
+        comment: bookingComment,
+      });
+      dispatch(updateCoins(-bookingMentor.pricePerHour));
+      setBookingConfirmed(true);
+    } catch (err: any) {
+      setBookingError(err.message || 'Ошибка бронирования');
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   return (
@@ -260,9 +280,9 @@ export default function MentorsPage() {
             <div className="text-center py-4">
               <CheckCircle2 size={48} className="text-accent-green mx-auto mb-4" />
               <p className="text-sm text-white/60 mb-2">
-                Ваша заявка на менторскую сессию отправлена. {bookingMentor?.name} получит уведомление.
+                Сессия с {bookingMentor?.name} оплачена и забронирована!
               </p>
-              <p className="text-xs text-white/30">Ожидайте подтверждение в течение 24 часов.</p>
+              <p className="text-xs text-white/30">Списано {bookingMentor?.pricePerHour} CodeCoins. Ожидайте подтверждение.</p>
               <div className="mt-6 p-3 rounded-xl bg-white/[0.03] text-xs text-white/40 space-y-1">
                 <div className="flex justify-between">
                   <span>Ментор:</span><span className="text-white/60">{bookingMentor?.name}</span>
@@ -358,7 +378,17 @@ export default function MentorsPage() {
                   </div>
 
                   <div className="flex items-center justify-between p-3 rounded-xl bg-accent-green/5 border border-accent-green/10 mb-4">
-                    <span className="text-sm text-white/60">Стоимость сессии (1 час)</span>
+                    <div>
+                      <span className="text-sm text-white/60">Стоимость сессии (1 час)</span>
+                      {currentUser && (
+                        <p className="text-[10px] text-white/30 mt-0.5">
+                          Ваш баланс: {currentUser.codeCoins} CC
+                          {bookingMentor && currentUser.codeCoins < bookingMentor.pricePerHour && (
+                            <span className="text-red-400 ml-1">(недостаточно)</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <CodeCoinIcon size={16} />
                       <span className="text-lg font-bold text-accent-green">{bookingMentor?.pricePerHour}</span>
@@ -366,13 +396,19 @@ export default function MentorsPage() {
                     </div>
                   </div>
 
+                  {bookingError && (
+                    <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                      {bookingError}
+                    </div>
+                  )}
+
                   <Button
                     className="w-full"
                     onClick={confirmBooking}
                     icon={<MessageCircle size={14} />}
-                    disabled={!bookingDate || !bookingTime}
+                    disabled={!bookingDate || !bookingTime || bookingLoading}
                   >
-                    Отправить заявку
+                    {bookingLoading ? 'Оформляем...' : 'Записаться и оплатить'}
                   </Button>
                   {(!bookingDate || !bookingTime) && (
                     <p className="text-center text-xs text-white/30 mt-2">Укажите дату и время для записи</p>

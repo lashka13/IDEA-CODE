@@ -22,3 +22,26 @@ class MentorResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class BookMentorRequest(BaseModel):
+    topic: str
+    date: str
+    time: str
+    comment: str = ""
+
+
+class BookingResponse(BaseModel):
+    id: str
+    user_id: str
+    mentor_id: str
+    mentor_name: str
+    topic: str
+    date: str
+    time: str
+    comment: str
+    price: int
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

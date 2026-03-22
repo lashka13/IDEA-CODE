@@ -345,6 +345,17 @@ class ApiClient {
     return this.request<any>(`/mentors/${id}`);
   }
 
+  async bookMentor(mentorId: string, payload: { topic: string; date: string; time: string; comment?: string }) {
+    return this.request<any>(`/mentors/${mentorId}/book`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMyBookings() {
+    return this.request<any[]>('/mentors/bookings/my');
+  }
+
   // Projects
   async getProjects(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();
