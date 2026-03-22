@@ -191,6 +191,7 @@ export function Header() {
     { path: '/communities', label: 'Сообщества' },
     { path: '/chat', label: 'Чат' },
     { path: '/tasks', label: 'Задачи' },
+    { path: '/growgrade', label: 'GrowGrade' },
     { path: '/mentors', label: 'Менторы' },
     { path: '/projects', label: 'Проекты' },
     { path: '/roadmap', label: 'Роадмап' },

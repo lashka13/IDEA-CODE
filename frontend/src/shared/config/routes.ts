@@ -13,6 +13,7 @@ export const ROUTES = {
   PROJECTS: '/projects',
   ROADMAP: '/roadmap',
   SCHEDULE: '/schedule',
+  GROWGRADE: '/growgrade',
   PROFILE: '/profile',
   USER_PROFILE: '/profile/:id',
   WALLET: '/wallet',

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
@@ -20,6 +20,12 @@ import {
   Bot,
   Sparkles,
   X,
+  Brain,
+  FileText,
+  BarChart3,
+  TrendingUp,
+  Target,
+  AlertTriangle,
 } from 'lucide-react';
 import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon } from '../../../shared/ui';
 import { cn, } from '../../../shared/lib';
@@ -29,6 +35,37 @@ import { selectAllUsers } from '../../../entities/user';
 import { apiClient } from '../../../shared/api/client';
 
 type SubmissionStatus = 'idle' | 'running' | 'accepted' | 'wrong' | 'error';
+
+type ThinkingAnalysis = {
+  thinking_score: number;
+  thinking_level: string;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  patterns: string[];
+  recommendations: string[];
+  cognitive_metrics: {
+    problem_decomposition: number;
+    hypothesis_testing: number;
+    abstraction_level: number;
+    debugging_approach: number;
+    time_management: number;
+  };
+};
+
+function MetricBar({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+  const color = value >= 7 ? 'bg-accent-green' : value >= 4 ? 'bg-yellow-400' : 'bg-red-400';
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-white/30 w-4 shrink-0">{icon}</span>
+      <span className="text-[11px] text-white/50 w-32 shrink-0">{label}</span>
+      <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+        <div className={cn('h-full rounded-full transition-all duration-700', color)} style={{ width: `${value * 10}%` }} />
+      </div>
+      <span className="text-[11px] text-white/40 w-6 text-right">{value}</span>
+    </div>
+  );
+}
 
 function CodeIDE({
   task,
@@ -44,6 +81,41 @@ function CodeIDE({
   const [reviewLoading, setReviewLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
 
+  // GrowGrade: Thinking Log
+  const [thinkingLog, setThinkingLog] = useState('');
+  const [showThinkingLog, setShowThinkingLog] = useState(false);
+  const [thinkingAnalysis, setThinkingAnalysis] = useState<ThinkingAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+
+  // Timer
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (timerRunning) {
+      timerRef.current = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerRunning]);
+
+  // Auto-start timer on first code edit
+  const handleCodeChange = (val: string) => {
+    if (!timerRunning && val !== getStarterCode(task)) {
+      setTimerRunning(true);
+    }
+    setCode(val);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  };
+
   const handleReview = async () => {
     setReviewLoading(true);
     setShowReview(true);
@@ -55,6 +127,35 @@ function CodeIDE({
       setReviewText('AI-ревью временно недоступно. Попробуйте позже.');
     } finally {
       setReviewLoading(false);
+    }
+  };
+
+  const handleAnalyzeThinking = async () => {
+    if (!thinkingLog.trim()) return;
+    setAnalysisLoading(true);
+    setShowAnalysis(true);
+    setThinkingAnalysis(null);
+    try {
+      const res = await apiClient.analyzeThinking(task.id, {
+        code,
+        language,
+        thinking_log: thinkingLog,
+        time_spent_seconds: elapsedSeconds,
+      });
+      setThinkingAnalysis(res.analysis);
+    } catch {
+      setThinkingAnalysis({
+        thinking_score: 0,
+        thinking_level: 'N/A',
+        summary: 'AI-анализ мышления временно недоступен. Попробуйте позже.',
+        strengths: [],
+        weaknesses: [],
+        patterns: [],
+        recommendations: [],
+        cognitive_metrics: { problem_decomposition: 0, hypothesis_testing: 0, abstraction_level: 0, debugging_approach: 0, time_management: 0 },
+      });
+    } finally {
+      setAnalysisLoading(false);
     }
   };
 
@@ -112,6 +213,7 @@ function CodeIDE({
       lines.push('');
       if (res.all_passed) {
         lines.push(`🎉 Все тесты пройдены! (${res.passed_count}/${res.total})`);
+        setTimerRunning(false);
       } else {
         lines.push(`Пройдено: ${res.passed_count}/${res.total}`);
       }
@@ -160,8 +262,25 @@ function CodeIDE({
           >
             <RotateCcw size={14} />
           </button>
+          {/* Timer */}
+          <div className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono',
+            timerRunning ? 'bg-accent-cyan/10 text-accent-cyan' : 'bg-white/[0.04] text-white/30'
+          )}>
+            <Timer size={12} />
+            {formatTime(elapsedSeconds)}
+          </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowThinkingLog(!showThinkingLog)}
+            className={cn(showThinkingLog ? '!text-amber-400 !bg-amber-500/10' : '!text-amber-400/50 hover:!bg-amber-500/10')}
+          >
+            <Brain size={12} />
+            Thinking Log
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleRun} disabled={status === 'running'}>
             <Play size={12} /> Запустить
           </Button>
@@ -181,52 +300,110 @@ function CodeIDE({
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          spellCheck={false}
-          className="flex-1 bg-surface-900/40 p-4 font-mono text-sm text-white/80 resize-none focus:outline-none leading-relaxed"
-          placeholder="Напишите решение здесь..."
-        />
+      {/* Editor + Thinking Log side by side */}
+      <div className="flex-1 min-h-0 flex">
+        <div className={cn('flex flex-col', showThinkingLog ? 'w-[60%]' : 'w-full')}>
+          <textarea
+            value={code}
+            onChange={(e) => handleCodeChange(e.target.value)}
+            spellCheck={false}
+            className="flex-1 bg-surface-900/40 p-4 font-mono text-sm text-white/80 resize-none focus:outline-none leading-relaxed"
+            placeholder="Напишите решение здесь..."
+          />
 
-        {/* Test cases + Output */}
-        <div className="h-48 border-t border-white/[0.04] flex flex-col">
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.04]">
-            <span className="text-[10px] font-bold uppercase text-white/20">Тесты</span>
-            <div className="flex gap-1 ml-2">
-              {task.examples.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveTestCase(i)}
-                  className={cn(
-                    'px-2 py-0.5 rounded text-[10px] transition-colors',
-                    activeTestCase === i ? 'bg-white/[0.08] text-white/60' : 'text-white/20 hover:text-white/40'
-                  )}
-                >
-                  Тест {i + 1}
-                </button>
-              ))}
-            </div>
-            <div className="ml-auto flex items-center gap-1">
-              {status === 'accepted' && <CheckCircle2 size={14} className="text-accent-green" />}
-              {status === 'wrong' && <XCircle size={14} className="text-red-400" />}
-              {status === 'error' && <XCircle size={14} className="text-orange-400" />}
-              {status === 'running' && <div className="w-3 h-3 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin" />}
-            </div>
-          </div>
-          <div className="flex-1 overflow-auto p-3">
-            {output ? (
-              <pre className="text-xs font-mono text-white/50 whitespace-pre-wrap">{output}</pre>
-            ) : (
-              <div className="flex items-center gap-3 text-xs text-white/20">
-                <Terminal size={14} />
-                Результат выполнения появится здесь
+          {/* Test cases + Output */}
+          <div className="h-48 border-t border-white/[0.04] flex flex-col">
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.04]">
+              <span className="text-[10px] font-bold uppercase text-white/20">Тесты</span>
+              <div className="flex gap-1 ml-2">
+                {task.examples.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveTestCase(i)}
+                    className={cn(
+                      'px-2 py-0.5 rounded text-[10px] transition-colors',
+                      activeTestCase === i ? 'bg-white/[0.08] text-white/60' : 'text-white/20 hover:text-white/40'
+                    )}
+                  >
+                    Тест {i + 1}
+                  </button>
+                ))}
               </div>
-            )}
+              <div className="ml-auto flex items-center gap-1">
+                {status === 'accepted' && <CheckCircle2 size={14} className="text-accent-green" />}
+                {status === 'wrong' && <XCircle size={14} className="text-red-400" />}
+                {status === 'error' && <XCircle size={14} className="text-orange-400" />}
+                {status === 'running' && <div className="w-3 h-3 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin" />}
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-3">
+              {output ? (
+                <pre className="text-xs font-mono text-white/50 whitespace-pre-wrap">{output}</pre>
+              ) : (
+                <div className="flex items-center gap-3 text-xs text-white/20">
+                  <Terminal size={14} />
+                  Результат выполнения появится здесь
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Thinking Log Panel */}
+        <AnimatePresence>
+          {showThinkingLog && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: '40%', opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="border-l border-amber-500/20 flex flex-col bg-amber-500/[0.02] overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-amber-500/10">
+                <div className="flex items-center gap-2">
+                  <Brain size={14} className="text-amber-400" />
+                  <span className="text-xs font-semibold text-amber-400">Thinking Log</span>
+                  <span className="text-[10px] text-amber-400/40">GrowGrade</span>
+                </div>
+                <button
+                  onClick={() => setShowThinkingLog(false)}
+                  className="p-1 rounded hover:bg-white/[0.04] text-white/30 hover:text-white/60 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="px-4 py-2 border-b border-amber-500/10 bg-amber-500/[0.03]">
+                <p className="text-[10px] text-amber-400/60 leading-relaxed">
+                  Записывайте ход мыслей: какие идеи рассматриваете, почему выбрали подход, где застряли, что помогло.
+                  AI проанализирует ваш процесс мышления.
+                </p>
+              </div>
+
+              <textarea
+                value={thinkingLog}
+                onChange={(e) => setThinkingLog(e.target.value)}
+                spellCheck={false}
+                className="flex-1 bg-transparent p-4 text-sm text-white/70 resize-none focus:outline-none leading-relaxed placeholder:text-white/15"
+                placeholder={"Шаг 1: Читаю задачу. Нужно найти...\n\nШаг 2: Первая идея — перебор, но O(n²)...\n\nШаг 3: Подумал про хэш-таблицу..."}
+              />
+
+              <div className="px-4 py-3 border-t border-amber-500/10 flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleAnalyzeThinking}
+                  disabled={analysisLoading || !thinkingLog.trim()}
+                  loading={analysisLoading}
+                  className="!bg-amber-500 hover:!bg-amber-400 !text-black flex-1"
+                >
+                  <Brain size={12} />
+                  Анализ мышления
+                </Button>
+                <span className="text-[10px] text-white/20">{thinkingLog.length} символов</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* AI Review Panel */}
@@ -261,6 +438,137 @@ function CodeIDE({
                   {reviewText}
                 </div>
               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* GrowGrade AI Thinking Analysis Panel */}
+      <AnimatePresence>
+        {showAnalysis && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t border-amber-500/20 bg-gradient-to-b from-amber-500/[0.05] to-transparent overflow-hidden"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-amber-400">
+                  <Brain size={14} />
+                  GrowGrade: Анализ мышления
+                </div>
+                <button
+                  onClick={() => setShowAnalysis(false)}
+                  className="p-1 rounded hover:bg-white/[0.04] text-white/30 hover:text-white/60 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {analysisLoading ? (
+                <div className="flex items-center gap-3 text-xs text-white/30 py-4">
+                  <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                  AI анализирует ваш процесс мышления...
+                </div>
+              ) : thinkingAnalysis ? (
+                <div className="space-y-4 max-h-80 overflow-y-auto custom-scrollbar">
+                  {/* Score Header */}
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      'w-16 h-16 rounded-2xl flex flex-col items-center justify-center',
+                      thinkingAnalysis.thinking_score >= 7 ? 'bg-accent-green/10 border border-accent-green/20' :
+                      thinkingAnalysis.thinking_score >= 4 ? 'bg-yellow-400/10 border border-yellow-400/20' :
+                      'bg-red-400/10 border border-red-400/20'
+                    )}>
+                      <span className={cn(
+                        'text-2xl font-bold',
+                        thinkingAnalysis.thinking_score >= 7 ? 'text-accent-green' :
+                        thinkingAnalysis.thinking_score >= 4 ? 'text-yellow-400' : 'text-red-400'
+                      )}>
+                        {thinkingAnalysis.thinking_score}
+                      </span>
+                      <span className="text-[9px] text-white/30">/10</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={
+                          thinkingAnalysis.thinking_level === 'Senior' ? 'green' :
+                          thinkingAnalysis.thinking_level === 'Middle' ? 'cyan' : 'default'
+                        }>
+                          {thinkingAnalysis.thinking_level}
+                        </Badge>
+                        <span className="text-[10px] text-white/20">
+                          <Timer size={10} className="inline mr-1" />
+                          {formatTime(elapsedSeconds)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/50 leading-relaxed">{thinkingAnalysis.summary}</p>
+                    </div>
+                  </div>
+
+                  {/* Cognitive Metrics */}
+                  <div className="bg-white/[0.02] rounded-xl p-3 space-y-2">
+                    <p className="text-[10px] font-bold uppercase text-white/20 mb-2 flex items-center gap-1">
+                      <BarChart3 size={10} /> Когнитивные метрики
+                    </p>
+                    <MetricBar label="Декомпозиция" value={thinkingAnalysis.cognitive_metrics.problem_decomposition} icon={<Target size={10} />} />
+                    <MetricBar label="Гипотезы" value={thinkingAnalysis.cognitive_metrics.hypothesis_testing} icon={<Lightbulb size={10} />} />
+                    <MetricBar label="Абстракция" value={thinkingAnalysis.cognitive_metrics.abstraction_level} icon={<TrendingUp size={10} />} />
+                    <MetricBar label="Дебаггинг" value={thinkingAnalysis.cognitive_metrics.debugging_approach} icon={<AlertTriangle size={10} />} />
+                    <MetricBar label="Время" value={thinkingAnalysis.cognitive_metrics.time_management} icon={<Timer size={10} />} />
+                  </div>
+
+                  {/* Strengths & Weaknesses */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {thinkingAnalysis.strengths.length > 0 && (
+                      <div className="bg-accent-green/[0.03] border border-accent-green/10 rounded-xl p-3">
+                        <p className="text-[10px] font-bold uppercase text-accent-green/60 mb-2 flex items-center gap-1">
+                          <CheckCircle2 size={10} /> Сильные стороны
+                        </p>
+                        {thinkingAnalysis.strengths.map((s, i) => (
+                          <p key={i} className="text-[11px] text-white/50 mb-1 pl-2 border-l border-accent-green/20">{s}</p>
+                        ))}
+                      </div>
+                    )}
+                    {thinkingAnalysis.weaknesses.length > 0 && (
+                      <div className="bg-red-400/[0.03] border border-red-400/10 rounded-xl p-3">
+                        <p className="text-[10px] font-bold uppercase text-red-400/60 mb-2 flex items-center gap-1">
+                          <AlertTriangle size={10} /> Зоны роста
+                        </p>
+                        {thinkingAnalysis.weaknesses.map((w, i) => (
+                          <p key={i} className="text-[11px] text-white/50 mb-1 pl-2 border-l border-red-400/20">{w}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Patterns & Recommendations */}
+                  {thinkingAnalysis.patterns.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-white/20 mb-1.5 flex items-center gap-1">
+                        <FileText size={10} /> Паттерны мышления
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {thinkingAnalysis.patterns.map((p, i) => (
+                          <span key={i} className="text-[10px] text-amber-400/70 bg-amber-400/[0.08] px-2 py-0.5 rounded-full">{p}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {thinkingAnalysis.recommendations.length > 0 && (
+                    <div className="bg-white/[0.02] rounded-xl p-3">
+                      <p className="text-[10px] font-bold uppercase text-white/20 mb-2 flex items-center gap-1">
+                        <Sparkles size={10} /> Рекомендации
+                      </p>
+                      {thinkingAnalysis.recommendations.map((r, i) => (
+                        <p key={i} className="text-[11px] text-white/50 mb-1.5 pl-2 border-l border-amber-400/20">{r}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
           </motion.div>
         )}
@@ -552,11 +860,20 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
 }
 
 type ActiveTab = 'tasks' | 'challenges';
+type Grade = 'all' | 'junior' | 'middle' | 'senior';
+
+const GRADE_DIFFICULTY_MAP: Record<Grade, TaskDifficulty[]> = {
+  all: ['easy', 'medium', 'hard'],
+  junior: ['easy'],
+  middle: ['easy', 'medium'],
+  senior: ['easy', 'medium', 'hard'],
+};
 
 export default function TasksPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | 'all'>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<TaskDifficulty | 'all'>('all');
+  const [selectedGrade, setSelectedGrade] = useState<Grade>('all');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -616,6 +933,7 @@ export default function TasksPage() {
   const filteredTasks = tasks.filter((t) => {
     if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
     if (selectedDifficulty !== 'all' && t.difficulty !== selectedDifficulty) return false;
+    if (selectedGrade !== 'all' && !GRADE_DIFFICULTY_MAP[selectedGrade].includes(t.difficulty)) return false;
     return true;
   });
 
@@ -803,6 +1121,34 @@ export default function TasksPage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Grade selector */}
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-amber-500/[0.03] border border-amber-500/10">
+          <Brain size={14} className="text-amber-400" />
+          <span className="text-xs text-amber-400/70 font-medium">Ваш грейд:</span>
+          <div className="flex gap-1">
+            {([
+              { id: 'all' as Grade, label: 'Все уровни' },
+              { id: 'junior' as Grade, label: 'Junior' },
+              { id: 'middle' as Grade, label: 'Middle' },
+              { id: 'senior' as Grade, label: 'Senior' },
+            ]).map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => setSelectedGrade(id)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                  selectedGrade === id
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'text-white/30 hover:text-white/50 border border-transparent'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] text-amber-400/30 ml-auto">GrowGrade</span>
         </div>
 
         {/* Filters */}

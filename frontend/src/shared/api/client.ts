@@ -324,6 +324,58 @@ class ApiClient {
     );
   }
 
+  async analyzeThinking(taskId: string, data: { code: string; language: string; thinking_log: string; time_spent_seconds: number }) {
+    return this.request<{
+      analysis: {
+        thinking_score: number;
+        thinking_level: string;
+        summary: string;
+        strengths: string[];
+        weaknesses: string[];
+        patterns: string[];
+        recommendations: string[];
+        cognitive_metrics: {
+          problem_decomposition: number;
+          hypothesis_testing: number;
+          abstraction_level: number;
+          debugging_approach: number;
+          time_management: number;
+        };
+      };
+    }>(
+      `/tasks/${taskId}/analyze-thinking`,
+      { method: 'POST', body: JSON.stringify(data) },
+    );
+  }
+
+  // GrowGrade
+  async getThinkingHistory() {
+    return this.request<any[]>('/tasks/growgrade/history');
+  }
+
+  async getThinkingSummary() {
+    return this.request<{
+      total_analyses: number;
+      avg_score: number;
+      dominant_level: string;
+      avg_metrics: Record<string, number>;
+      top_strengths: string[];
+      top_weaknesses: string[];
+      all_patterns: string[];
+      ai_summary: string | null;
+    }>('/tasks/growgrade/summary');
+  }
+
+  async getUserThinkingSummary(userId: string) {
+    return this.request<{
+      total_analyses: number;
+      avg_score: number;
+      dominant_level: string;
+      avg_metrics: Record<string, number>;
+      all_patterns: string[];
+    }>(`/tasks/growgrade/user/${userId}/summary`);
+  }
+
   // Challenges
   async getChallenges(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();

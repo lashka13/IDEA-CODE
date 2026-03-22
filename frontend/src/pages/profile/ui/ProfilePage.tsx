@@ -1,7 +1,8 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Calendar, Upload, ShoppingBag, Award, Settings } from 'lucide-react';
+import { Star, Calendar, Upload, ShoppingBag, Award, Settings, Brain, Target, Lightbulb, TrendingUp, AlertTriangle, Timer, BarChart3, Sparkles } from 'lucide-react';
+import { apiClient } from '../../../shared/api/client';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllUsers } from '../../../entities/user';
 import { selectAllMaterials } from '../../../entities/material';
@@ -92,6 +93,115 @@ function SkillRadar({ skills }: { skills: Record<string, number> }) {
         </linearGradient>
       </defs>
     </svg>
+  );
+}
+
+function GrowGradeMetricBar({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+  const color = value >= 7 ? 'bg-accent-green' : value >= 4 ? 'bg-yellow-400' : 'bg-red-400';
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-white/30 w-4 shrink-0">{icon}</span>
+      <span className="text-[11px] text-white/50 w-24 shrink-0">{label}</span>
+      <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+        <div className={cn('h-full rounded-full transition-all duration-700', color)} style={{ width: `${value * 10}%` }} />
+      </div>
+      <span className="text-[10px] text-white/40 w-5 text-right">{value}</span>
+    </div>
+  );
+}
+
+function GrowGradeProfileSection({ userId, isOwnProfile }: { userId: string; isOwnProfile: boolean }) {
+  const navigate = useNavigate();
+  const [data, setData] = useState<{
+    total_analyses: number;
+    avg_score: number;
+    dominant_level: string;
+    avg_metrics: Record<string, number>;
+    all_patterns?: string[];
+    ai_summary?: string | null;
+    top_strengths?: string[];
+    top_weaknesses?: string[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = isOwnProfile
+      ? apiClient.getThinkingSummary()
+      : apiClient.getUserThinkingSummary(userId);
+    fetch.then(setData).catch(() => null).finally(() => setLoading(false));
+  }, [userId, isOwnProfile]);
+
+  if (loading || !data || data.total_analyses === 0) return null;
+
+  const scoreColor = data.avg_score >= 7 ? 'text-accent-green' : data.avg_score >= 4 ? 'text-yellow-400' : 'text-red-400';
+
+  return (
+    <GlassCard className="mb-6 !border-amber-500/10 !bg-amber-500/[0.02]">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Brain size={14} className="text-amber-400" />
+          <span className="text-amber-400">GrowGrade</span>
+          <span className="text-white/40 font-normal">— Когнитивный профиль</span>
+        </h3>
+        {isOwnProfile && (
+          <button
+            onClick={() => navigate('/growgrade')}
+            className="text-[10px] text-amber-400/60 hover:text-amber-400 transition-colors"
+          >
+            Подробнее →
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Score & Level */}
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            'w-14 h-14 rounded-xl flex flex-col items-center justify-center',
+            data.avg_score >= 7 ? 'bg-accent-green/10' : data.avg_score >= 4 ? 'bg-yellow-400/10' : 'bg-red-400/10'
+          )}>
+            <span className={cn('text-2xl font-bold', scoreColor)}>{data.avg_score}</span>
+            <span className="text-[8px] text-white/25">/10</span>
+          </div>
+          <div>
+            <Badge variant={data.dominant_level === 'Senior' ? 'green' : data.dominant_level === 'Middle' ? 'cyan' : 'default'}>
+              {data.dominant_level}
+            </Badge>
+            <p className="text-[10px] text-white/30 mt-1">{data.total_analyses} анализов</p>
+          </div>
+        </div>
+
+        {/* Metrics */}
+        <div className="space-y-1.5">
+          <GrowGradeMetricBar label="Декомпозиция" value={data.avg_metrics.problem_decomposition || 0} icon={<Target size={8} />} />
+          <GrowGradeMetricBar label="Гипотезы" value={data.avg_metrics.hypothesis_testing || 0} icon={<Lightbulb size={8} />} />
+          <GrowGradeMetricBar label="Абстракция" value={data.avg_metrics.abstraction_level || 0} icon={<TrendingUp size={8} />} />
+          <GrowGradeMetricBar label="Дебаггинг" value={data.avg_metrics.debugging_approach || 0} icon={<AlertTriangle size={8} />} />
+          <GrowGradeMetricBar label="Время" value={data.avg_metrics.time_management || 0} icon={<Timer size={8} />} />
+        </div>
+
+        {/* Patterns or AI Summary */}
+        <div>
+          {data.ai_summary ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase text-amber-400/40 mb-1 flex items-center gap-1">
+                <Sparkles size={8} /> AI-саммари
+              </p>
+              <p className="text-[11px] text-white/50 leading-relaxed line-clamp-4">{data.ai_summary}</p>
+            </div>
+          ) : data.all_patterns && data.all_patterns.length > 0 ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase text-white/20 mb-2">Паттерны мышления</p>
+              <div className="flex flex-wrap gap-1">
+                {data.all_patterns.slice(0, 6).map((p, i) => (
+                  <span key={i} className="text-[9px] text-amber-400/60 bg-amber-400/[0.06] px-2 py-0.5 rounded-full">{p}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </GlassCard>
   );
 }
 
@@ -194,6 +304,9 @@ export default function ProfilePage() {
             </div>
           </GlassCard>
         </div>
+
+        {/* GrowGrade Thinking Profile */}
+        <GrowGradeProfileSection userId={profileUser.id} isOwnProfile={!id || profileUser.id === currentUser?.id} />
 
         {/* Tabs */}
         <Tabs

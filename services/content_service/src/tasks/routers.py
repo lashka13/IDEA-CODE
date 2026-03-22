@@ -3,9 +3,10 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc, func as sa_func
 from src.db import get_db
-from src.tasks.models import Task
+from src.tasks.models import Task, ThinkingAnalysis
+from src.utils import get_current_user_id
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -43,6 +44,188 @@ async def get_tasks(
         query = query.where(Task.category == category)
     result = await db.execute(query)
     return [_task_to_dict(t) for t in result.scalars().all()]
+
+
+# ── GrowGrade GET routes (must be before /{task_id}) ─────────
+
+@router.get("/growgrade/history")
+async def get_thinking_history(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get user's thinking analysis history."""
+    result = await db.execute(
+        select(ThinkingAnalysis)
+        .where(ThinkingAnalysis.user_id == user_id)
+        .order_by(desc(ThinkingAnalysis.created_at))
+        .limit(50)
+    )
+    analyses = result.scalars().all()
+    return [
+        {
+            "id": a.id,
+            "task_id": a.task_id,
+            "task_title": a.task_title,
+            "task_difficulty": a.task_difficulty,
+            "language": a.language,
+            "time_spent_seconds": a.time_spent_seconds,
+            "thinking_score": a.thinking_score,
+            "thinking_level": a.thinking_level,
+            "summary": a.summary,
+            "strengths": a.strengths,
+            "weaknesses": a.weaknesses,
+            "patterns": a.patterns,
+            "recommendations": a.recommendations,
+            "cognitive_metrics": a.cognitive_metrics,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in analyses
+    ]
+
+
+@router.get("/growgrade/summary")
+async def get_thinking_summary(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """GrowGrade: AI-generated summary of user's thinking patterns for profile/mentors."""
+    result = await db.execute(
+        select(ThinkingAnalysis)
+        .where(ThinkingAnalysis.user_id == user_id)
+        .order_by(desc(ThinkingAnalysis.created_at))
+        .limit(20)
+    )
+    analyses = result.scalars().all()
+
+    if not analyses:
+        return {
+            "total_analyses": 0,
+            "avg_score": 0,
+            "dominant_level": "N/A",
+            "avg_metrics": {},
+            "top_strengths": [],
+            "top_weaknesses": [],
+            "all_patterns": [],
+            "ai_summary": None,
+        }
+
+    total = len(analyses)
+    avg_score = sum(a.thinking_score for a in analyses) / total
+
+    level_counts: dict[str, int] = {}
+    for a in analyses:
+        level_counts[a.thinking_level] = level_counts.get(a.thinking_level, 0) + 1
+    dominant_level = max(level_counts, key=level_counts.get)  # type: ignore
+
+    metric_keys = ["problem_decomposition", "hypothesis_testing", "abstraction_level", "debugging_approach", "time_management"]
+    avg_metrics = {}
+    for key in metric_keys:
+        vals = [a.cognitive_metrics.get(key, 0) for a in analyses if a.cognitive_metrics]
+        avg_metrics[key] = round(sum(vals) / len(vals), 1) if vals else 0
+
+    from collections import Counter
+    all_strengths = Counter(s for a in analyses for s in (a.strengths or []))
+    all_weaknesses = Counter(w for a in analyses for w in (a.weaknesses or []))
+    all_patterns = Counter(p for a in analyses for p in (a.patterns or []))
+
+    ai_summary = None
+    if total >= 2 and OPENROUTER_API_KEY:
+        summaries_text = "\n".join(
+            f"- Задача '{a.task_title}' ({a.task_difficulty}): оценка {a.thinking_score}/10, уровень {a.thinking_level}. {a.summary}"
+            for a in analyses[:10]
+        )
+        prompt = f"""Проанализируй историю когнитивного развития разработчика на платформе GrowGrade.
+
+Количество анализов: {total}
+Средняя оценка мышления: {avg_score:.1f}/10
+Преобладающий уровень: {dominant_level}
+Средние когнитивные метрики: {avg_metrics}
+Частые сильные стороны: {[s for s, _ in all_strengths.most_common(5)]}
+Частые слабые стороны: {[w for w, _ in all_weaknesses.most_common(5)]}
+Паттерны мышления: {[p for p, _ in all_patterns.most_common(5)]}
+
+Последние анализы:
+{summaries_text}
+
+Напиши краткое саммари (3-5 предложений) о когнитивном профиле разработчика:
+1. Общий уровень и стиль мышления
+2. Ключевые зоны роста
+3. Рекомендация для ментора: на чём сфокусировать работу
+
+Отвечай на русском, кратко и по делу."""
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
+                    json={
+                        "model": LLM_MODEL,
+                        "messages": [
+                            {"role": "system", "content": "Ты — AI-аналитик когнитивного развития на платформе GrowGrade."},
+                            {"role": "user", "content": prompt},
+                        ],
+                        "max_tokens": 500,
+                        "temperature": 0.4,
+                    },
+                )
+                resp.raise_for_status()
+                ai_summary = resp.json()["choices"][0]["message"]["content"]
+        except Exception:
+            pass
+
+    return {
+        "total_analyses": total,
+        "avg_score": round(avg_score, 1),
+        "dominant_level": dominant_level,
+        "avg_metrics": avg_metrics,
+        "top_strengths": [s for s, _ in all_strengths.most_common(5)],
+        "top_weaknesses": [w for w, _ in all_weaknesses.most_common(5)],
+        "all_patterns": [p for p, _ in all_patterns.most_common(8)],
+        "ai_summary": ai_summary,
+    }
+
+
+@router.get("/growgrade/user/{target_user_id}/summary")
+async def get_user_thinking_summary(
+    target_user_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public summary of a user's thinking profile (for mentors to see)."""
+    result = await db.execute(
+        select(ThinkingAnalysis)
+        .where(ThinkingAnalysis.user_id == target_user_id)
+        .order_by(desc(ThinkingAnalysis.created_at))
+        .limit(20)
+    )
+    analyses = result.scalars().all()
+
+    if not analyses:
+        return {"total_analyses": 0, "avg_score": 0, "dominant_level": "N/A", "avg_metrics": {}}
+
+    total = len(analyses)
+    avg_score = sum(a.thinking_score for a in analyses) / total
+    level_counts: dict[str, int] = {}
+    for a in analyses:
+        level_counts[a.thinking_level] = level_counts.get(a.thinking_level, 0) + 1
+    dominant_level = max(level_counts, key=level_counts.get)  # type: ignore
+
+    metric_keys = ["problem_decomposition", "hypothesis_testing", "abstraction_level", "debugging_approach", "time_management"]
+    avg_metrics = {}
+    for key in metric_keys:
+        vals = [a.cognitive_metrics.get(key, 0) for a in analyses if a.cognitive_metrics]
+        avg_metrics[key] = round(sum(vals) / len(vals), 1) if vals else 0
+
+    from collections import Counter
+    all_patterns = Counter(p for a in analyses for p in (a.patterns or []))
+
+    return {
+        "total_analyses": total,
+        "avg_score": round(avg_score, 1),
+        "dominant_level": dominant_level,
+        "avg_metrics": avg_metrics,
+        "all_patterns": [p for p, _ in all_patterns.most_common(8)],
+    }
 
 
 @router.get("/{task_id}")
@@ -290,3 +473,157 @@ async def review_code(
         raise HTTPException(status_code=502, detail=f"AI review failed: {str(e)}")
 
     return {"review": review}
+
+
+class AnalyzeThinkingRequest(BaseModel):
+    code: str
+    language: str = "python"
+    thinking_log: str
+    time_spent_seconds: int = 0
+
+
+@router.post("/{task_id}/analyze-thinking")
+async def analyze_thinking(
+    task_id: str,
+    body: AnalyzeThinkingRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """GrowGrade: AI analysis of developer's thinking process."""
+    result = await db.execute(select(Task).where(Task.id == task_id))
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(status_code=503, detail="AI analysis unavailable: no API key")
+
+    minutes = body.time_spent_seconds // 60
+    seconds = body.time_spent_seconds % 60
+    time_str = f"{minutes} мин {seconds} сек" if minutes else f"{seconds} сек"
+
+    prompt = f"""Ты — AI-наставник на платформе GrowGrade. Твоя задача — проанализировать ПРОЦЕСС МЫШЛЕНИЯ разработчика при решении задачи, а не только код.
+
+Задача: {task.title}
+Описание: {task.description}
+Сложность: {task.difficulty}
+Язык: {body.language}
+Время решения: {time_str}
+
+Код решения:
+```{body.language}
+{body.code}
+```
+
+Лог мышления (записи разработчика о ходе решения):
+---
+{body.thinking_log}
+---
+
+Проанализируй и ответь СТРОГО в следующем JSON-формате (без markdown-обёрток):
+{{
+  "thinking_score": <число от 1 до 10>,
+  "thinking_level": "<Junior / Middle / Senior>",
+  "summary": "<2-3 предложения общей оценки процесса мышления>",
+  "strengths": ["<сильная сторона 1>", "<сильная сторона 2>"],
+  "weaknesses": ["<слабая сторона 1>", "<слабая сторона 2>"],
+  "patterns": ["<паттерн мышления 1>", "<паттерн мышления 2>"],
+  "recommendations": ["<рекомендация 1>", "<рекомендация 2>"],
+  "cognitive_metrics": {{
+    "problem_decomposition": <1-10>,
+    "hypothesis_testing": <1-10>,
+    "abstraction_level": <1-10>,
+    "debugging_approach": <1-10>,
+    "time_management": <1-10>
+  }}
+}}
+
+Оценивай по критериям:
+- Декомпозиция задачи: разбивает ли на подзадачи?
+- Проверка гипотез: тестирует ли идеи перед реализацией?
+- Уровень абстракции: мыслит паттернами или копипастит?
+- Подход к отладке: системный или хаотичный?
+- Управление временем: соотношение времени к сложности задачи
+
+Отвечай ТОЛЬКО валидным JSON, без дополнительного текста."""
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": LLM_MODEL,
+                    "messages": [
+                        {"role": "system", "content": "Ты — AI-аналитик когнитивных процессов разработчиков на платформе GrowGrade. Отвечай только валидным JSON."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "max_tokens": 1200,
+                    "temperature": 0.3,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            raw = data["choices"][0]["message"]["content"]
+
+            # Try to parse JSON from response
+            import json as json_mod
+            # Strip markdown code fences if present
+            clean = raw.strip()
+            if clean.startswith("```"):
+                clean = clean.split("\n", 1)[1] if "\n" in clean else clean[3:]
+                if clean.endswith("```"):
+                    clean = clean[:-3]
+                clean = clean.strip()
+
+            try:
+                analysis = json_mod.loads(clean)
+            except json_mod.JSONDecodeError:
+                # If JSON parsing fails, return raw text as summary
+                analysis = {
+                    "thinking_score": 5,
+                    "thinking_level": "Middle",
+                    "summary": raw[:500],
+                    "strengths": [],
+                    "weaknesses": [],
+                    "patterns": [],
+                    "recommendations": [],
+                    "cognitive_metrics": {
+                        "problem_decomposition": 5,
+                        "hypothesis_testing": 5,
+                        "abstraction_level": 5,
+                        "debugging_approach": 5,
+                        "time_management": 5,
+                    },
+                }
+
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI analysis failed: {str(e)}")
+
+    # Save to DB
+    record = ThinkingAnalysis(
+        user_id=user_id,
+        task_id=task_id,
+        task_title=task.title,
+        task_difficulty=task.difficulty,
+        language=body.language,
+        time_spent_seconds=body.time_spent_seconds,
+        thinking_log=body.thinking_log[:10000],
+        code=body.code[:10000],
+        thinking_score=analysis.get("thinking_score", 0),
+        thinking_level=analysis.get("thinking_level", ""),
+        summary=analysis.get("summary", ""),
+        strengths=analysis.get("strengths", []),
+        weaknesses=analysis.get("weaknesses", []),
+        patterns=analysis.get("patterns", []),
+        recommendations=analysis.get("recommendations", []),
+        cognitive_metrics=analysis.get("cognitive_metrics", {}),
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+
+    return {"analysis": analysis, "analysis_id": record.id}

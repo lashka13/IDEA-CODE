@@ -24,6 +24,7 @@ const ProfileEditPage = lazy(() => import('../../pages/profile-edit'));
 const SmartSearchPage = lazy(() => import('../../pages/smart-search'));
 const NotFoundPage = lazy(() => import('../../pages/not-found'));
 const AISearchPage = lazy(() => import('../../pages/ai-search'));
+const GrowGradePage = lazy(() => import('../../pages/growgrade'));
 
 function PageLoader() {
   return (
@@ -53,6 +54,7 @@ export function AppRouter() {
           <Route path="/communities/:slug" element={<CommunityDetailPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/growgrade" element={<GrowGradePage />} />
           <Route path="/mentors" element={<MentorsPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
