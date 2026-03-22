@@ -82,7 +82,8 @@ async def ask_assistant(
             for chunk, doc in result.all():
                 _append_chunk(context_chunks, source_ids, chunk, doc)
     else:
-        search_results = hybrid_search(body.query, bm25_index, vector_index, top_k=5)
+        # Need chunks from several materials; top_k=5 often collapsed to one document.
+        search_results = hybrid_search(body.query, bm25_index, vector_index, top_k=16)
 
         chunk_ids = [r["chunk_id"] for r in search_results]
         if chunk_ids:

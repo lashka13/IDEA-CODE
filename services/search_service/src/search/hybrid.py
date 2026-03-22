@@ -9,6 +9,7 @@ HTTP entry: `GET /api/search/` in `src/search/routers.py`.
 """
 from src.indexer.bm25_index import BM25Index
 from src.indexer.vector_index import VectorIndex
+from src.search.query_expand import expand_search_query
 
 
 def reciprocal_rank_fusion(
@@ -31,14 +32,15 @@ def hybrid_search(
     top_k: int = 10,
 ) -> list[dict]:
     """Run hybrid BM25 + semantic search with RRF fusion."""
+    q = expand_search_query(query)
     fetch_k = top_k * 5
 
-    bm25_results = bm25_index.search(query, top_k=fetch_k)
+    bm25_results = bm25_index.search(q, top_k=fetch_k)
 
     # Filter BM25 to only include chunks with non-zero scores
     bm25_results = [(cid, score) for cid, score in bm25_results if score > 0.0]
 
-    semantic_raw = vector_index.search(query, top_k=fetch_k)
+    semantic_raw = vector_index.search(q, top_k=fetch_k)
 
     # Cosine distance → similarity (lower distance = more relevant)
     semantic_results = [
@@ -46,8 +48,11 @@ def hybrid_search(
     ]
     semantic_text_map = {chunk_id: text for chunk_id, _, text in semantic_raw}
 
-    rankings = []
+    # Count BM25 twice in RRF so keyword matches (title/tags) beat vague semantic neighbours
+    # when the query clearly names a technology (e.g. "питон" → expanded "python").
+    rankings: list[list[tuple[str, float]]] = []
     if bm25_results:
+        rankings.append(bm25_results)
         rankings.append(bm25_results)
     if semantic_results:
         rankings.append(semantic_results)
@@ -57,8 +62,12 @@ def hybrid_search(
 
     fused = reciprocal_rank_fusion(rankings)
 
+    # Many chunks can belong to the same material; the API dedupes by document.
+    # Take a wide slice of fused rankings so we still get `top_k` materials after dedupe.
+    chunk_limit = min(len(fused), max(top_k * 20, 80))
+
     results = []
-    for chunk_id, score in fused[:top_k]:
+    for chunk_id, score in fused[:chunk_limit]:
         text = semantic_text_map.get(chunk_id, "")
         results.append({
             "chunk_id": chunk_id,

@@ -37,18 +37,17 @@ async def search_documents(
     rows = result.all()
     chunk_map = {chunk.id: (chunk, doc) for chunk, doc in rows}
 
-    items: list[SearchResultItem] = []
-    best_score = max((r["score"] for r in raw_results), default=0)
+    # Do not filter by fraction of best RRF score — values decay fast; a 35–60% cutoff
+    # often kept a single chunk. Trust fused order + per-document dedupe below.
+
+    candidates: list[SearchResultItem] = []
     for r in raw_results:
         cid = r["chunk_id"]
         if cid not in chunk_map:
             continue
-        # Filter out results that scored less than 60% of the best result
-        if best_score > 0 and r["score"] < best_score * 0.6:
-            continue
         chunk, doc = chunk_map[cid]
         snippet = chunk.text[:300] + "..." if len(chunk.text) > 300 else chunk.text
-        items.append(SearchResultItem(
+        candidates.append(SearchResultItem(
             chunk_id=cid,
             document_id=doc.id,
             document_title=doc.title,
@@ -57,6 +56,14 @@ async def search_documents(
             source_type=doc.source_type,
         ))
 
+    # One row per material: best-scoring chunk per document (fused order preserved on ties).
+    by_doc: dict[str, SearchResultItem] = {}
+    for it in candidates:
+        prev = by_doc.get(it.document_id)
+        if prev is None or it.score > prev.score:
+            by_doc[it.document_id] = it
+
+    items = sorted(by_doc.values(), key=lambda x: x.score, reverse=True)[:top_k]
     return SearchResponse(query=q, results=items, total=len(items))
 
 
