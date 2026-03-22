@@ -109,7 +109,13 @@ async def ask_assistant(
                     if len(context_chunks) >= rag_limit:
                         break
 
-    history = [{"role": m.role, "content": m.content} for m in body.history] if body.history else None
+    history = None
+    if body.history:
+        history = [
+            {"role": m.role, "content": m.content}
+            for m in body.history
+            if m.content.strip()
+        ] or None
 
     answer = await generate_answer(body.query, context_chunks, history)
 

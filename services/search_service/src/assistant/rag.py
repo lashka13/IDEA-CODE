@@ -1,14 +1,66 @@
+import asyncio
 import logging
 import httpx
 from src.conf import get_settings
+from src.assistant.llm_utils import ensure_non_empty_llm_output
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
 SYSTEM_PROMPT = """Ты — умный помощник по учебным материалам. Отвечай на вопросы пользователя, \
 опираясь ТОЛЬКО на предоставленный контекст из документов. Если в контексте нет ответа, \
-честно скажи об этом. Отвечай структурировано и по существу (без лишней воды). Используй markdown. \
+честно скажи об этом. Отвечай подробно и структурированно. Используй markdown для форматирования. \
 Отвечай на том же языке, на котором задан вопрос."""
+
+
+def _normalize_openai_content(content: object) -> str:
+    """OpenAI-style message.content: str, null, or list of {type,text} parts."""
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict):
+                t = block.get("text")
+                if t is not None:
+                    parts.append(str(t))
+                elif block.get("type") == "text" and "content" in block:
+                    parts.append(str(block["content"]))
+            elif isinstance(block, str):
+                parts.append(block)
+        return "".join(parts)
+    return str(content)
+
+
+def _chat_completion_text(data: dict) -> str:
+    """Extract assistant message text; APIs may omit content or return null."""
+    try:
+        choices = data.get("choices") or []
+        if not choices:
+            return ""
+        ch0 = choices[0]
+        msg = ch0.get("message") or {}
+        raw = msg.get("content")
+        text = _normalize_openai_content(raw)
+        if text.strip():
+            return text
+        for key in ("reasoning_content", "reasoning"):
+            r = msg.get(key)
+            if r and str(r).strip():
+                return str(r)
+        # Refusal / policy (Azure-style)
+        refusal = msg.get("refusal")
+        if refusal:
+            return str(refusal)
+        # Legacy completions
+        legacy = ch0.get("text")
+        if legacy:
+            return str(legacy)
+        return ""
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return ""
 
 
 def _sanitize_llm_messages(messages: list[dict]) -> list[dict]:
@@ -39,7 +91,10 @@ def build_context(chunks: list[dict]) -> str:
 
 
 async def call_openai_compatible_chat(messages: list[dict], model: str | None = None) -> str:
-    """OpenAI-compatible POST .../chat/completions (e.g. Pollinations gen)."""
+    """OpenAI-compatible POST .../chat/completions (e.g. Pollinations gen).
+
+    Retries once on transient HTTP/network errors or empty body — free tiers are flaky.
+    """
     api_key = settings.OPENAI_API_KEY
     if not api_key:
         raise ValueError("OPENAI_API_KEY is empty")
@@ -52,25 +107,67 @@ async def call_openai_compatible_chat(messages: list[dict], model: str | None = 
     if not messages:
         raise ValueError("No valid messages (all contents empty)")
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        resp = await client.post(
-            url,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "messages": messages,
-                "max_tokens": settings.LLM_MAX_TOKENS,
-                "temperature": settings.LLM_TEMPERATURE,
-            },
-        )
-        if resp.is_error:
-            logger.error("OpenAI-compatible LLM error %s: %s", resp.status_code, resp.text[:2000])
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+    payload = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": settings.LLM_MAX_TOKENS,
+        "temperature": settings.LLM_TEMPERATURE,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    last_text = ""
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=180.0) as client:
+                resp = await client.post(url, headers=headers, json=payload)
+            if resp.is_error:
+                logger.error(
+                    "OpenAI-compatible LLM error %s: %s",
+                    resp.status_code,
+                    resp.text[:2000],
+                )
+            resp.raise_for_status()
+            data = resp.json()
+            text = _chat_completion_text(data)
+            if text.strip():
+                return text
+            last_text = text
+            logger.warning(
+                "OpenAI-compatible LLM empty content (attempt %s/2); keys=%s",
+                attempt + 1,
+                list(data.keys()) if isinstance(data, dict) else type(data),
+            )
+        except httpx.HTTPStatusError as e:
+            code = e.response.status_code
+            logger.warning(
+                "OpenAI-compatible HTTP %s (attempt %s/2): %s",
+                code,
+                attempt + 1,
+                (e.response.text or "")[:500],
+            )
+            if code not in (429, 502, 503, 504) or attempt >= 1:
+                raise
+        except httpx.RequestError as e:
+            logger.warning(
+                "OpenAI-compatible request error (attempt %s/2): %s",
+                attempt + 1,
+                e,
+            )
+            if attempt >= 1:
+                raise
+        except ValueError as e:
+            # httpx resp.json() can raise JSONDecodeError (subclass of ValueError)
+            logger.warning("OpenAI-compatible bad JSON (attempt %s/2): %s", attempt + 1, e)
+            if attempt >= 1:
+                raise
+
+        if attempt < 1:
+            await asyncio.sleep(0.75 + 0.35 * attempt)
+
+    return last_text
 
 
 async def call_openrouter(messages: list[dict], model: str | None = None) -> str:
@@ -107,7 +204,10 @@ async def call_openrouter(messages: list[dict], model: str | None = None) -> str
             )
         resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        text = _chat_completion_text(data)
+        if not text.strip():
+            logger.warning("OpenRouter returned empty content")
+        return text
 
 
 async def call_huggingface_llm(messages: list[dict]) -> str:
@@ -133,8 +233,8 @@ async def call_huggingface_llm(messages: list[dict]) -> str:
         resp.raise_for_status()
         data = resp.json()
         if isinstance(data, list) and data:
-            return data[0].get("generated_text", "")
-        return str(data)
+            return data[0].get("generated_text", "") or ""
+        return str(data) if data else ""
 
 
 def _fallback_response(messages: list[dict]) -> str:
@@ -173,13 +273,33 @@ async def generate_answer(
     messages.append({"role": "user", "content": query})
 
     try:
+        text = ""
         if settings.OPENAI_API_KEY:
-            return await call_openai_compatible_chat(messages)
-        if settings.OPENROUTER_API_KEY:
-            return await call_openrouter(messages)
-        if settings.HUGGINGFACE_API_KEY:
-            return await call_huggingface_llm(messages)
-        return _fallback_response(messages)
+            try:
+                text = await call_openai_compatible_chat(messages)
+            except Exception as e:
+                logger.warning(
+                    "Primary LLM (OpenAI-compatible) failed, will try OpenRouter if configured: %s",
+                    e,
+                )
+                if not settings.OPENROUTER_API_KEY:
+                    raise
+                text = ""
+            if not (text or "").strip() and settings.OPENROUTER_API_KEY:
+                logger.warning(
+                    "Primary LLM empty or unavailable; using OpenRouter for this request",
+                )
+                text = await call_openrouter(messages)
+        elif settings.OPENROUTER_API_KEY:
+            text = await call_openrouter(messages)
+        elif settings.HUGGINGFACE_API_KEY:
+            text = await call_huggingface_llm(messages)
+        else:
+            return ensure_non_empty_llm_output(_fallback_response(messages))
+
+        return ensure_non_empty_llm_output(text)
     except Exception as e:
-        logger.error(f"LLM call failed: {e}")
-        return f"Произошла ошибка при генерации ответа: {str(e)}"
+        logger.exception("LLM call failed: %s", e)
+        return ensure_non_empty_llm_output(
+            f"Произошла ошибка при генерации ответа: {str(e)}"
+        )
