@@ -114,10 +114,10 @@ export default function LoginPage() {
               transition={{ type: 'spring', bounce: 0.4 }}
               className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-green to-accent-cyan flex items-center justify-center mx-auto mb-4"
             >
-              <span className="text-surface-900 font-bold text-xl">IT</span>
+              <span className="text-surface-900 font-bold text-xl">GG</span>
             </motion.div>
-            <h1 className="text-2xl font-bold">IT-RE:SOURCE</h1>
-            <p className="text-white/40 text-sm mt-1">Образовательная платформа для IT-специалистов</p>
+            <h1 className="text-2xl font-bold">GrowGrade</h1>
+            <p className="text-white/40 text-sm mt-1">Платформа для роста IT-специалистов с AI-анализом мышления</p>
           </div>
 
           {/* Tabs */}

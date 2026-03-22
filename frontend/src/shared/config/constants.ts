@@ -1,4 +1,4 @@
-export const APP_NAME = 'IT-RE:SOURCE';
+export const APP_NAME = 'GrowGrade';
 export const CURRENCY_NAME = 'CodeCoins';
 export const INITIAL_COINS = 50;
 

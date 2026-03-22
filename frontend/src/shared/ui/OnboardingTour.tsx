@@ -11,8 +11,8 @@ interface TourStep {
 const TOUR_STEPS: TourStep[] = [
   {
     emoji: '🎓',
-    title: 'Добро пожаловать в IT-RE:SOURCE!',
-    description: 'Образовательная платформа для IT-специалистов с внутренней валютой CodeCoins, AI-менторами и реальным выполнением кода.',
+    title: 'Добро пожаловать в GrowGrade!',
+    description: 'Платформа для роста IT-специалистов с AI-анализом мышления, внутренней валютой CodeCoins и менторами.',
   },
   {
     emoji: '📚',
