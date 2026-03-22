@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Calendar, Upload, ShoppingBag, Award, Settings, Brain, Target, Lightbulb, TrendingUp, AlertTriangle, Timer, BarChart3, Sparkles } from 'lucide-react';
+import { Star, Calendar, Upload, ShoppingBag, Award, Settings, Brain, Target, Lightbulb, TrendingUp, AlertTriangle, Timer, Sparkles } from 'lucide-react';
 import { apiClient } from '../../../shared/api/client';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllUsers } from '../../../entities/user';

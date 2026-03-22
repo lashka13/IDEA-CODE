@@ -3,7 +3,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func as sa_func
+from sqlalchemy import select, desc
 from src.db import get_db
 from src.tasks.models import Task, ThinkingAnalysis
 from src.utils import get_current_user_id
