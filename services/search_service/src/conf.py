@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     HUGGINGFACE_API_KEY: str = ""
     OPENROUTER_API_KEY: str = ""
     EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
-    LLM_MODEL: str = "google/gemma-3-4b-it:free"
+    LLM_MODEL: str = "nvidia/nemotron-3-super-120b-a12b:free"
     CHROMA_PERSIST_DIR: str = "/app/chroma_data"
 
     @property

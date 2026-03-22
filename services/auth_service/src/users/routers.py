@@ -59,12 +59,13 @@ async def register(data: UserCreate, request: Request, db: AsyncSession = Depend
 
     # Produce Kafka event
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("user.registered", {
-        "user_id": user_id,
-        "name": user.name,
-        "username": user.username,
-        "bonus": settings.REGISTRATION_BONUS,
-    })
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("user.registered", {
+            "user_id": user_id,
+            "name": user.name,
+            "username": user.username,
+            "bonus": settings.REGISTRATION_BONUS,
+        })
 
     token = create_access_token(user.id)
     return Token(access_token=token, user=_user_response(user))

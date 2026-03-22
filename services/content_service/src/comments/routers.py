@@ -49,11 +49,12 @@ async def create_comment(
     await db.refresh(comment)
 
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("comment.created", {
-        "comment_id": comment.id, "material_id": material_id,
-        "author_id": user_id, "material_author_id": material.author_id,
-        "material_title": material.title, "rating": data.rating,
-    })
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("comment.created", {
+            "comment_id": comment.id, "material_id": material_id,
+            "author_id": user_id, "material_author_id": material.author_id,
+            "material_title": material.title, "rating": data.rating,
+        })
 
     return CommentResponse.model_validate(comment)
 

@@ -131,7 +131,7 @@ services:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     healthcheck:
@@ -156,12 +156,12 @@ services:
       SEARCH_INDEX_SECRET: ${SEARCH_INDEX_SECRET:-search-service-internal}
       PISTON_URL: http://piston:2000
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-google/gemma-3-4b-it:free}
+      LLM_MODEL: ${LLM_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     healthcheck:
@@ -184,7 +184,7 @@ services:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     healthcheck:
@@ -208,7 +208,7 @@ services:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     healthcheck:
@@ -231,7 +231,7 @@ services:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     healthcheck:
@@ -254,7 +254,7 @@ services:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
     healthcheck:
@@ -278,14 +278,14 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       EMBEDDING_MODEL: openai/text-embedding-3-small
       # Stable free tier for RAG answers (nemotron often rate-limits or errors)
-      LLM_MODEL: ${LLM_MODEL:-google/gemma-3-4b-it:free}
+      LLM_MODEL: ${LLM_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
       auth_service:
         condition: service_healthy
       content_service:

@@ -87,11 +87,12 @@ async def join_community(
     await db.commit()
 
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("community.joined", {
-        "user_id": user_id,
-        "community_id": community.id,
-        "community_name": community.name,
-    })
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("community.joined", {
+            "user_id": user_id,
+            "community_id": community.id,
+            "community_name": community.name,
+        })
 
     return {"status": "joined"}
 

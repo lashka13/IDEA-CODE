@@ -104,9 +104,10 @@ async def create_material(
     await db.refresh(material)
 
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("material.created", {
-        "material_id": material_id, "author_id": user_id, "title": data.title,
-    })
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("material.created", {
+            "material_id": material_id, "author_id": user_id, "title": data.title,
+        })
 
     return MaterialResponse.model_validate(material)
 
@@ -132,7 +133,8 @@ async def update_material(
     await db.refresh(material)
 
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("material.updated", {"material_id": material_id})
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("material.updated", {"material_id": material_id})
 
     return MaterialResponse.model_validate(material)
 
@@ -154,7 +156,8 @@ async def delete_material(
     await db.commit()
 
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("material.deleted", {"material_id": material_id})
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("material.deleted", {"material_id": material_id})
 
 
 @router.post("/{material_id}/purchase", response_model=MaterialResponse)
@@ -193,13 +196,14 @@ async def purchase_material(
 
     # Produce Kafka event
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("material.purchased", {
-        "buyer_id": user_id,
-        "seller_id": material.author_id,
-        "material_id": material.id,
-        "material_title": material.title,
-        "price": material.price,
-    })
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("material.purchased", {
+            "buyer_id": user_id,
+            "seller_id": material.author_id,
+            "material_id": material.id,
+            "material_title": material.title,
+            "price": material.price,
+        })
 
     return MaterialResponse.model_validate(material)
 

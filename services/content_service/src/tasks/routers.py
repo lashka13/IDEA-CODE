@@ -12,7 +12,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 PISTON_URL = os.getenv("PISTON_URL", "http://piston:2000")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "google/gemma-2-9b-it:free")
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
 
 # Piston language mapping: frontend value → (language, version)
 LANGUAGE_MAP = {

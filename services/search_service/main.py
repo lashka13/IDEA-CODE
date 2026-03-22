@@ -2,6 +2,8 @@ import os
 
 # ChromaDB reads this at import time; helps avoid noisy PostHog telemetry errors in logs.
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+# OpenRouter RAG chat model (override with LLM_MODEL in services/.env).
+os.environ.setdefault("LLM_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
 
 import asyncio
 import logging
@@ -30,6 +32,7 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
 
     app.state.bm25_index = BM25Index()
+    logger.info("OpenRouter LLM model: %s", settings.LLM_MODEL)
     if not settings.OPENROUTER_API_KEY:
         logger.warning(
             "OPENROUTER_API_KEY is empty: semantic search (embeddings) will fail or degrade. "

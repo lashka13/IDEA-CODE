@@ -63,10 +63,11 @@ async def handle_user_registered(data: dict, app):
 
     # Produce achievement.unlocked event
     kafka_producer = app.state.kafka_producer
-    await kafka_producer.send_and_wait("achievement.unlocked", {
-        "user_id": user_id,
-        "achievement_id": "ach-1",
-    })
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("achievement.unlocked", {
+            "user_id": user_id,
+            "achievement_id": "ach-1",
+        })
 
 
 async def handle_material_purchased(data: dict, app):

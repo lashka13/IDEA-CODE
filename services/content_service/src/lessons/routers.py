@@ -84,6 +84,7 @@ async def create_lesson(
     await db.refresh(lesson)
 
     kafka_producer = request.app.state.kafka_producer
-    await kafka_producer.send_and_wait("material.updated", {"material_id": material_id})
+    if kafka_producer is not None:
+        await kafka_producer.send_and_wait("material.updated", {"material_id": material_id})
 
     return LessonResponse.model_validate(lesson)
