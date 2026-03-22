@@ -1,5 +1,7 @@
 from pydantic import BaseModel, field_validator
 
+from src.assistant.llm_utils import ensure_non_empty_llm_output
+
 
 class ChatMessage(BaseModel):
     role: str  # "user" or "assistant"
@@ -7,11 +9,9 @@ class ChatMessage(BaseModel):
 
     @field_validator("content")
     @classmethod
-    def content_not_empty(cls, v: str) -> str:
-        s = v.strip()
-        if not s:
-            raise ValueError("history message content must not be empty")
-        return s
+    def content_strip(cls, v: str) -> str:
+        """Allow empty strings — UI may send placeholders; router filters before LLM."""
+        return v.strip() if isinstance(v, str) else ""
 
 
 class AskRequest(BaseModel):
@@ -31,3 +31,8 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: list[str]
+
+    @field_validator("answer")
+    @classmethod
+    def answer_never_empty(cls, v: str) -> str:
+        return ensure_non_empty_llm_output(v)
