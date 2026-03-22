@@ -115,7 +115,6 @@ export function HeaderSearch({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                                   <p className="text-sm text-white truncate">{mat.title}</p>
                                   <p className="text-xs text-white/30 truncate">{mat.technology.join(', ')}</p>
                                 </div>
-                                <span className="text-xs text-accent-green font-medium flex-shrink-0">{mat.price} CC</span>
                               </button>
                             );
                           })}

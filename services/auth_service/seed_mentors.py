@@ -119,6 +119,24 @@ MENTORS = [
         "specializations": ["Кибербезопасность", "Пентест", "Security аудит"],
         "languages": ["Русский", "English"],
     },
+    {
+        "id": "mentor-07",
+        "user_id": "user-demo01",
+        "name": "Никита Громов",
+        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=nikita_demo",
+        "title": "Full-stack Tech Lead",
+        "company": "Сбер",
+        "experience": "10 лет",
+        "bio": "Full-stack разработчик и техлид. React, Node.js, Go. Помогу с архитектурой, ревью и подготовкой к собеседованиям в топ-компании.",
+        "tech_stack": ["React", "TypeScript", "Node.js", "Go", "PostgreSQL", "Docker"],
+        "rating": 4.9,
+        "review_count": 203,
+        "sessions_completed": 158,
+        "price_per_hour": 110,
+        "available": True,
+        "specializations": ["Подготовка к собеседованиям", "System Design", "Code Review", "Архитектура"],
+        "languages": ["Русский", "English"],
+    },
 ]
 
 

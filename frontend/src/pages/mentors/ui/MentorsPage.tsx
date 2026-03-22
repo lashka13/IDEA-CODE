@@ -8,10 +8,11 @@ import {
   CheckCircle2,
   Filter,
   Search,
+  Plus,
 } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { selectIsAuthenticated, selectCurrentUser, updateCoins } from '../../../features/auth';
-import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon, Modal } from '../../../shared/ui';
+import { useAppSelector } from '../../../app/store/hooks';
+import { selectIsAuthenticated } from '../../../features/auth';
+import { PageTransition, GlassCard, Button, Badge, Modal } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { type Mentor } from '../../../shared/types';
 import { apiClient } from '../../../shared/api/client';
@@ -84,13 +85,8 @@ function MentorCard({ mentor, onBook }: { mentor: Mentor; onBook: (m: Mentor) =>
           ))}
         </div>
 
-        {/* Price & CTA */}
-        <div className="flex items-center justify-between pt-4 border-t border-white/[0.04] mt-auto">
-          <div className="flex items-center gap-1.5">
-            <CodeCoinIcon size={16} />
-            <span className="text-lg font-bold text-accent-green">{mentor.pricePerHour}</span>
-            <span className="text-xs text-white/30">CC/час</span>
-          </div>
+        {/* CTA */}
+        <div className="flex items-center justify-end pt-4 border-t border-white/[0.04] mt-auto">
           <Button
             size="sm"
             variant={mentor.available ? 'primary' : 'secondary'}
@@ -106,9 +102,7 @@ function MentorCard({ mentor, onBook }: { mentor: Mentor; onBook: (m: Mentor) =>
 }
 
 export default function MentorsPage() {
-  const dispatch = useAppDispatch();
   const isAuth = useAppSelector(selectIsAuthenticated);
-  const currentUser = useAppSelector(selectCurrentUser);
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -191,7 +185,6 @@ export default function MentorsPage() {
         time: bookingTime,
         comment: bookingComment,
       });
-      dispatch(updateCoins(-bookingMentor.pricePerHour));
       setBookingConfirmed(true);
     } catch (err: any) {
       setBookingError(err.message || 'Ошибка бронирования');
@@ -210,6 +203,15 @@ export default function MentorsPage() {
               Опытные разработчики помогут с подготовкой к собеседованиям, ревью кода и карьерой
             </p>
           </div>
+          {isAuth && (
+            <Link
+              to="/add-material"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent-green/10 border border-accent-green/20 hover:bg-accent-green/20 transition-all duration-300 text-accent-green text-sm font-medium flex-shrink-0"
+            >
+              <Plus size={16} />
+              <span>Добавить кейс</span>
+            </Link>
+          )}
         </div>
 
         {/* Search & Filters */}
@@ -282,7 +284,7 @@ export default function MentorsPage() {
               <p className="text-sm text-white/60 mb-2">
                 Сессия с {bookingMentor?.name} оплачена и забронирована!
               </p>
-              <p className="text-xs text-white/30">Списано {bookingMentor?.pricePerHour} CodeCoins. Ожидайте подтверждение.</p>
+              <p className="text-xs text-white/30">Ожидайте подтверждение от ментора.</p>
               <div className="mt-6 p-3 rounded-xl bg-white/[0.03] text-xs text-white/40 space-y-1">
                 <div className="flex justify-between">
                   <span>Ментор:</span><span className="text-white/60">{bookingMentor?.name}</span>
@@ -301,10 +303,6 @@ export default function MentorsPage() {
                     <span>Время:</span><span className="text-white/60">{bookingTime}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span>Стоимость:</span>
-                  <span className="text-accent-green font-medium">{bookingMentor?.pricePerHour} CC/час</span>
-                </div>
               </div>
             </div>
           ) : (
@@ -377,25 +375,6 @@ export default function MentorsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-accent-green/5 border border-accent-green/10 mb-4">
-                    <div>
-                      <span className="text-sm text-white/60">Стоимость сессии (1 час)</span>
-                      {currentUser && (
-                        <p className="text-[10px] text-white/30 mt-0.5">
-                          Ваш баланс: {currentUser.codeCoins} CC
-                          {bookingMentor && currentUser.codeCoins < bookingMentor.pricePerHour && (
-                            <span className="text-red-400 ml-1">(недостаточно)</span>
-                          )}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CodeCoinIcon size={16} />
-                      <span className="text-lg font-bold text-accent-green">{bookingMentor?.pricePerHour}</span>
-                      <span className="text-xs text-white/30">CC</span>
-                    </div>
-                  </div>
-
                   {bookingError && (
                     <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                       {bookingError}
@@ -408,7 +387,7 @@ export default function MentorsPage() {
                     icon={<MessageCircle size={14} />}
                     disabled={!bookingDate || !bookingTime || bookingLoading}
                   >
-                    {bookingLoading ? 'Оформляем...' : 'Записаться и оплатить'}
+                    {bookingLoading ? 'Оформляем...' : 'Записаться'}
                   </Button>
                   {(!bookingDate || !bookingTime) && (
                     <p className="text-center text-xs text-white/30 mt-2">Укажите дату и время для записи</p>

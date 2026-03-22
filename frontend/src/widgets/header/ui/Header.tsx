@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Wallet, LogIn, LogOut, Menu, X, Plus, Bell, ShoppingCart, MessageCircle, FolderGit2, Users, Trophy, Zap, Settings } from 'lucide-react';
+import { Search, LogIn, LogOut, Menu, X, Bell, ShoppingCart, MessageCircle, FolderGit2, Users, Trophy, Zap, Settings } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
 import { selectCurrentUser, selectIsAuthenticated, logout } from '../../../features/auth';
-import { CodeCoinIcon, Button } from '../../../shared/ui';
+import { Button } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { APP_NAME } from '../../../shared/config/constants';
 import { HeaderSearch } from './HeaderSearch';
@@ -192,8 +192,6 @@ export function Header() {
     { path: '/growgrade', label: 'GrowGrade' },
     { path: '/mentors', label: 'Менторы' },
     { path: '/projects', label: 'Проекты' },
-    { path: '/roadmap', label: 'Роадмап' },
-    { path: '/schedule', label: 'Расписание' },
   ];
 
   return (
@@ -268,24 +266,6 @@ export function Header() {
 
             {isAuth && user ? (
               <>
-                {/* Add material */}
-                <Link
-                  to="/add-material"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-green/10 border border-accent-green/20 hover:bg-accent-green/20 transition-all duration-300 text-accent-green text-sm font-medium"
-                >
-                  <Plus size={14} />
-                  <span className="hidden lg:inline">Добавить</span>
-                </Link>
-
-                {/* Coins */}
-                <Link
-                  to="/wallet"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-accent-green/20 transition-all duration-300"
-                >
-                  <CodeCoinIcon size={14} />
-                  <span className="text-sm font-medium text-accent-green">{user.codeCoins}</span>
-                </Link>
-
                 {/* Profile */}
                 <Link
                   to="/profile"
@@ -349,15 +329,6 @@ export function Header() {
                   {item.label}
                 </Link>
               ))}
-              {isAuth && (
-                <Link
-                  to="/wallet"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-white/50"
-                >
-                  <Wallet size={16} /> Кошелёк
-                  <span className="ml-auto text-accent-green">{user?.codeCoins} CC</span>
-                </Link>
-              )}
             </div>
           </motion.div>
         )}

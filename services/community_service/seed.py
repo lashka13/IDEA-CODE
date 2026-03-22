@@ -27,6 +27,7 @@ COMMUNITIES = [
             {"user_id": "user-alex01", "role": "admin"},
             {"user_id": "user-masha01", "role": "member"},
             {"user_id": "user-anna01", "role": "member"},
+            {"user_id": "user-demo01", "role": "member"},
         ],
     },
     {
@@ -34,7 +35,7 @@ COMMUNITIES = [
         "name": "DevOps & Cloud",
         "slug": "devops-cloud",
         "description": "Docker, Kubernetes, CI/CD, облачные платформы. Делимся опытом и помогаем друг другу.",
-        "cover_url": "https://images.unsplash.com/photo-1605745341112-85968b19335a?w=800&q=80",
+        "cover_url": "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&q=80",
         "icon_emoji": "🐳",
         "member_count": 2,
         "material_count": 1,

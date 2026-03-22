@@ -1,6 +1,4 @@
 export const APP_NAME = 'GrowGrade';
-export const CURRENCY_NAME = 'CodeCoins';
-export const INITIAL_COINS = 50;
 
 export const DIFFICULTY_LABELS = {
   junior: 'Junior',

@@ -27,7 +27,7 @@ import {
   Target,
   AlertTriangle,
 } from 'lucide-react';
-import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon } from '../../../shared/ui';
+import { PageTransition, GlassCard, Button, Badge } from '../../../shared/ui';
 import { cn, } from '../../../shared/lib';
 import { TASK_CATEGORIES, type Task, type TaskCategory, type TaskDifficulty, type Challenge } from '../../../shared/types';
 import { useAppSelector } from '../../../app/store/hooks';
@@ -764,10 +764,10 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="text-center p-2 rounded-lg bg-white/[0.02]">
             <div className="flex items-center justify-center gap-1">
-              <CodeCoinIcon size={10} />
-              <span className="text-sm font-bold text-accent-green">{challenge.prizePool}</span>
+              <Zap size={10} className="text-accent-green" />
+              <span className="text-sm font-bold text-accent-green">{challenge.tasks.length}</span>
             </div>
-            <p className="text-[10px] text-white/25">Призовой фонд</p>
+            <p className="text-[10px] text-white/25">Задач</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-white/[0.02]">
             <div className="flex items-center justify-center gap-1">

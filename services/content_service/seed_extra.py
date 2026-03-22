@@ -255,7 +255,7 @@ EVENTS = [
         "type": "webinar",
         "host_name": "Дмитрий Волков",
         "host_avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=mentor3",
-        "cover_url": "https://images.unsplash.com/photo-1605745341112-85968b19335a?w=800&q=80",
+        "cover_url": "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&q=80",
         "starts_at": "2026-03-23T15:00:00",
         "duration_minutes": 60,
         "is_live": False,

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Star, FileText, Code, Video, Presentation } from 'lucide-react';
 import { type Material, type User } from '../../../shared/types';
-import { GlassCard, Badge, CodeCoinIcon } from '../../../shared/ui';
+import { GlassCard, Badge } from '../../../shared/ui';
 import { useTilt } from '../../../shared/lib/useTilt';
 import { LANGUAGE_COLORS, DIFFICULTY_LABELS, FORMAT_LABELS } from '../../../shared/config/constants';
 
@@ -81,10 +81,6 @@ export function MaterialCard({ material, author }: MaterialCardProps) {
                 <Star size={12} className="text-yellow-400 fill-yellow-400" />
                 <span className="text-xs font-medium">{material.rating}</span>
                 <span className="text-xs text-white/20">({material.ratingCount})</span>
-              </div>
-              <div className="flex items-center gap-1 text-accent-green">
-                <CodeCoinIcon size={12} />
-                <span className="text-xs font-bold">{material.price}</span>
               </div>
             </div>
 

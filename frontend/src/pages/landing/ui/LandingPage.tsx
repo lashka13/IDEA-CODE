@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectPopularMaterials, selectAllMaterials } from '../../../entities/material';
 import { selectTopAuthors, selectAllUsers } from '../../../entities/user';
-import { PageTransition, GradientMesh, TextReveal, Button, GlassCard, AnimatedCounter, StaggerContainer, staggerItemVariants, CodeCoinIcon } from '../../../shared/ui';
+import { PageTransition, GradientMesh, TextReveal, Button, GlassCard, AnimatedCounter, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import { MaterialCard } from '../../../entities/material/ui/MaterialCard';
 
@@ -40,8 +40,7 @@ export default function LandingPage() {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="text-lg sm:text-xl text-white/40 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Решай задачи, изучай кейсы менторов, зарабатывай <span className="text-accent-green">CodeCoins</span>{' '}
-            и прокачивай навыки вместе
+            Решай задачи, изучай кейсы менторов и прокачивай навыки вместе с сообществом
           </motion.p>
 
           <motion.div
@@ -148,11 +147,7 @@ export default function LandingPage() {
                   <img src={mentor.avatarUrl} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-3 group-hover:scale-105 transition-transform" />
                   <p className="text-sm font-semibold truncate">{mentor.name}</p>
                   <p className="text-xs text-white/30 mt-0.5">@{mentor.username}</p>
-                  <div className="flex items-center justify-center gap-1 mt-2 text-accent-green text-xs font-medium">
-                    <CodeCoinIcon size={12} />
-                    <AnimatedCounter value={mentor.codeCoins} />
-                  </div>
-                  <p className="text-[10px] text-white/20 mt-1">{mentor.uploadsCount} кейсов</p>
+                  <p className="text-[10px] text-white/20 mt-2">{mentor.uploadsCount} кейсов</p>
                 </GlassCard>
               </Link>
             </motion.div>

@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Calendar, Upload, ShoppingBag, Award, Settings, Brain, Target, Lightbulb, TrendingUp, AlertTriangle, Timer, Sparkles } from 'lucide-react';
+import { Star, Calendar, Upload, ShoppingBag, Award, Settings, Brain, Target, Lightbulb, TrendingUp, AlertTriangle, Timer, Sparkles, Map } from 'lucide-react';
 import { apiClient } from '../../../shared/api/client';
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllUsers } from '../../../entities/user';
@@ -10,7 +10,7 @@ import { selectCurrentUser, selectIsAuthenticated } from '../../../features/auth
 import { selectPurchasedIds } from '../../../features/buy-material';
 import { selectAllAchievements } from '../../../entities/achievement';
 import { MaterialCard } from '../../../entities/material/ui/MaterialCard';
-import { PageTransition, GlassCard, Tabs, Badge, CodeCoinIcon, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
+import { PageTransition, GlassCard, Tabs, Badge, StaggerContainer, staggerItemVariants } from '../../../shared/ui';
 import { formatDate, cn } from '../../../shared/lib';
 
 const SKILL_COLORS: Record<string, string> = {
@@ -269,7 +269,6 @@ export default function ProfilePage() {
             <p className="text-sm text-white/50 mb-4">{profileUser.bio}</p>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm">
               <span className="flex items-center gap-1"><Star size={14} className="text-yellow-400" /> {profileUser.rating}</span>
-              <span className="flex items-center gap-1"><CodeCoinIcon size={14} /> <span className="text-accent-green font-semibold">{profileUser.codeCoins}</span></span>
               <span className="flex items-center gap-1 text-white/30"><Upload size={14} /> {profileUser.uploadsCount}</span>
               <span className="flex items-center gap-1 text-white/30"><ShoppingBag size={14} /> {profileUser.purchasesCount}</span>
               <span className="flex items-center gap-1 text-white/30"><Calendar size={14} /> {formatDate(profileUser.joinedAt)}</span>
@@ -307,6 +306,28 @@ export default function ProfilePage() {
 
         {/* GrowGrade Thinking Profile */}
         <GrowGradeProfileSection userId={profileUser.id} isOwnProfile={!id || profileUser.id === currentUser?.id} />
+
+        {/* Roadmap link */}
+        {(!id || profileUser.id === currentUser?.id) && (
+          <Link to="/roadmap">
+            <GlassCard className="mb-6 !border-accent-cyan/10 hover:!border-accent-cyan/30 transition-all group cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 flex items-center justify-center">
+                    <Map size={18} className="text-accent-cyan" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold">Мой роадмап</h3>
+                    <p className="text-xs text-white/30">Интерактивный граф развития навыков</p>
+                  </div>
+                </div>
+                <span className="text-xs text-accent-cyan opacity-0 group-hover:opacity-100 transition-opacity">
+                  Открыть →
+                </span>
+              </div>
+            </GlassCard>
+          </Link>
+        )}
 
         {/* Tabs */}
         <Tabs

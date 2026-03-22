@@ -3,9 +3,9 @@ import { Star, ShoppingCart, ArrowLeft, BookOpen, Calendar, Check, FileText, Cod
 import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
 import { selectAllMaterials } from '../../../entities/material';
 import { selectAllUsers } from '../../../entities/user';
-import { selectIsAuthenticated, selectCurrentUser, updateCoins } from '../../../features/auth';
+import { selectIsAuthenticated, selectCurrentUser } from '../../../features/auth';
 import { selectIsPurchased, purchaseMaterialAsync } from '../../../features/buy-material';
-import { PageTransition, Button, GlassCard, Badge, CodeCoinIcon, Tag } from '../../../shared/ui';
+import { PageTransition, Button, GlassCard, Badge, Tag } from '../../../shared/ui';
 import { cn, formatDate } from '../../../shared/lib';
 import { DIFFICULTY_LABELS, FORMAT_LABELS } from '../../../shared/config/constants';
 import { useEffect, useState } from 'react';
@@ -69,7 +69,7 @@ export default function MaterialDetailPage() {
   }
 
   const Icon = FORMAT_ICONS[material.format] || FileText;
-  const canBuy = isAuth && currentUser && currentUser.codeCoins >= material.price && !isPurchased && material.authorId !== currentUser.id;
+  const canBuy = isAuth && currentUser && !isPurchased && material.authorId !== currentUser.id;
 
   const handleBuy = async () => {
     if (!canBuy) return;
@@ -77,7 +77,6 @@ export default function MaterialDetailPage() {
     setPurchaseError('');
     try {
       await dispatch(purchaseMaterialAsync(material.id)).unwrap();
-      dispatch(updateCoins(-material.price));
     } catch (e: any) {
       setPurchaseError(e.message || 'Ошибка при покупке');
     } finally {
@@ -238,17 +237,12 @@ export default function MaterialDetailPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-accent-green/5 to-accent-cyan/5 border border-accent-green/10">
-                <div className="flex items-center gap-2">
-                  <CodeCoinIcon size={20} />
-                  <span className="text-2xl font-bold text-accent-green">{material.price}</span>
-                  <span className="text-sm text-white/30">CC</span>
-                </div>
+              <div className="p-4 rounded-xl bg-gradient-to-r from-accent-green/5 to-accent-cyan/5 border border-accent-green/10">
                 {isPurchased ? (
-                  <Button variant="secondary" size="sm" icon={<Check size={14} />} disabled>Куплено</Button>
+                  <Button variant="secondary" className="w-full" icon={<Check size={14} />} disabled>Доступ получен</Button>
                 ) : (
-                  <Button size="sm" icon={<ShoppingCart size={14} />} onClick={handleBuy} disabled={!canBuy || purchasing}>
-                    {purchasing ? 'Покупка...' : 'Купить'}
+                  <Button className="w-full" icon={<ShoppingCart size={14} />} onClick={handleBuy} disabled={!canBuy || purchasing}>
+                    {purchasing ? 'Получение доступа...' : 'Получить доступ'}
                   </Button>
                 )}
               </div>
@@ -257,11 +251,8 @@ export default function MaterialDetailPage() {
 
               {!isAuth && (
                 <p className="text-xs text-white/20 text-center mt-2">
-                  <Link to="/login" className="text-accent-cyan hover:underline">Войдите</Link> чтобы купить
+                  <Link to="/login" className="text-accent-cyan hover:underline">Войдите</Link> чтобы получить доступ
                 </p>
-              )}
-              {isAuth && currentUser && currentUser.codeCoins < material.price && !isPurchased && (
-                <p className="text-xs text-red-400/70 text-center mt-2">Недостаточно CodeCoins</p>
               )}
 
               {isPurchased && hasLessons && (

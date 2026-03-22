@@ -115,6 +115,23 @@ USERS = [
         "uploads_count": 4,
         "purchases_count": 20,
     },
+    {
+        "id": "user-demo01",
+        "name": "Никита Громов",
+        "username": "nikita_demo",
+        "email": "nikita@example.com",
+        "password": "demo2026",
+        "bio": "Full-stack разработчик. Строю продукты от идеи до прода. React, Node, Go — основной стек. Ментор на GrowGrade.",
+        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=nikita_demo",
+        "rating": 4.9,
+        "code_coins": 3200,
+        "level": 18,
+        "level_title": "Гуру",
+        "tech_stack": ["React", "TypeScript", "Node.js", "Go", "PostgreSQL", "Docker"],
+        "skills": {"Frontend": 92, "Backend": 88, "DevOps": 65, "Data Science": 35, "Mobile": 45, "Security": 40},
+        "uploads_count": 12,
+        "purchases_count": 45,
+    },
 ]
 
 

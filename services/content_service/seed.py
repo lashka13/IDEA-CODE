@@ -77,7 +77,7 @@ MATERIALS = [
         "title": "Docker и Kubernetes: от нуля до прода",
         "description": "Контейнеризация приложений, Docker Compose, оркестрация с Kubernetes, CI/CD пайплайны и мониторинг.",
         "author_id": "user-dima01",
-        "cover_url": "https://images.unsplash.com/photo-1605745341112-85968b19335a?w=800&q=80",
+        "cover_url": "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&q=80",
         "price": 200,
         "rating": 4.9,
         "rating_count": 201,

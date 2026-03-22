@@ -30,7 +30,7 @@ import {
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectIsAuthenticated, selectCurrentUser } from '../../../features/auth';
 import { apiClient } from '../../../shared/api/client';
-import { PageTransition, GlassCard, Button, Input, Badge, CodeCoinIcon } from '../../../shared/ui';
+import { PageTransition, GlassCard, Button, Input, Badge } from '../../../shared/ui';
 import { cn } from '../../../shared/lib';
 import type { Language, Difficulty, Format, TaskType } from '../../../shared/types';
 
@@ -359,7 +359,6 @@ function LivePreview({
   language,
   difficulty,
   tags,
-  price,
   coverPreview,
   lessons,
   authorName,
@@ -454,14 +453,9 @@ function LivePreview({
           </div>
         )}
 
-        {/* Price */}
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
-          <div className="flex items-center gap-1.5">
-            <CodeCoinIcon size={14} />
-            <span className="text-lg font-bold text-accent-green">{price}</span>
-            <span className="text-[10px] text-white/25">CC</span>
-          </div>
-          <Button size="sm" disabled>Купить</Button>
+        {/* CTA */}
+        <div className="flex items-center justify-end pt-3 border-t border-white/[0.04]">
+          <Button size="sm" disabled>Получить доступ</Button>
         </div>
 
         {/* Completeness indicator */}
@@ -1006,9 +1000,8 @@ export default function AddMaterialPage() {
                       className="flex-1 accent-[#39FF14]"
                     />
                     <div className="flex items-center gap-1.5 min-w-[80px] justify-end">
-                      <CodeCoinIcon size={14} />
-                      <span className="text-lg font-bold text-accent-green">{price}</span>
-                      <span className="text-[10px] text-white/25">CC</span>
+                      <span className="text-lg font-bold text-white/50">{price}</span>
+                      <span className="text-[10px] text-white/25">баллов</span>
                     </div>
                   </div>
                 </div>

@@ -13,6 +13,5 @@ export const ROUTES = {
   GROWGRADE: '/growgrade',
   PROFILE: '/profile',
   USER_PROFILE: '/profile/:id',
-  WALLET: '/wallet',
   LOGIN: '/login',
 } as const;

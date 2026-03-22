@@ -15,7 +15,7 @@ import {
 import { useAppSelector } from '../../../app/store/hooks';
 import { selectAllUsers } from '../../../entities/user';
 import { selectIsAuthenticated } from '../../../features/auth';
-import { PageTransition, GlassCard, Button, Badge, CodeCoinIcon, Modal } from '../../../shared/ui';
+import { PageTransition, GlassCard, Button, Badge, Modal } from '../../../shared/ui';
 import { cn, formatDate } from '../../../shared/lib';
 import {
   ROLE_LABELS,
@@ -121,10 +121,6 @@ function ProjectCard({ project, mentors, onClick }: { project: Project; mentors:
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <CodeCoinIcon size={12} />
-              <span className="text-sm font-bold text-accent-green">{project.rewardCoins}</span>
-            </div>
           </div>
         </div>
       </GlassCard>
@@ -166,10 +162,6 @@ function ProjectDetail({ project, mentors, onBack }: { project: Project; mentors
                 {STATUS_LABELS[project.status]}
               </Badge>
               <h1 className="text-2xl font-bold mt-2">{project.title}</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <CodeCoinIcon size={20} />
-              <span className="text-xl font-bold text-accent-green">{project.rewardCoins} CC</span>
             </div>
           </div>
         </div>
@@ -309,12 +301,6 @@ function ProjectDetail({ project, mentors, onBack }: { project: Project; mentors
                   <Badge variant={project.difficulty === 'beginner' ? 'green' : project.difficulty === 'intermediate' ? 'cyan' : 'orange'} size="sm">
                     {project.difficulty}
                   </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/30">Награда</span>
-                  <span className="text-accent-green font-medium flex items-center gap-1">
-                    <CodeCoinIcon size={12} /> {project.rewardCoins} CC
-                  </span>
                 </div>
                 {teamLeadUser && (
                   <div className="flex justify-between">
@@ -504,7 +490,7 @@ export default function ProjectsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16">
         <h1 className="text-2xl font-bold mb-2">Проекты</h1>
         <p className="text-sm text-white/40 mb-8">
-          Присоединяйся к командным проектам, получай опыт и CodeCoins
+          Присоединяйся к командным проектам и получай реальный опыт
         </p>
 
         {/* Status filter */}

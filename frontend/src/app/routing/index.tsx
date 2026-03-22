@@ -14,7 +14,6 @@ const ProjectsPage = lazy(() => import('../../pages/projects'));
 const RoadmapPage = lazy(() => import('../../pages/roadmap'));
 const SchedulePage = lazy(() => import('../../pages/schedule'));
 const ProfilePage = lazy(() => import('../../pages/profile'));
-const WalletPage = lazy(() => import('../../pages/wallet'));
 const LoginPage = lazy(() => import('../../pages/auth'));
 const NotificationsPage = lazy(() => import('../../pages/notifications'));
 const ProfileEditPage = lazy(() => import('../../pages/profile-edit'));
@@ -56,7 +55,6 @@ export function AppRouter() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/edit" element={<ProfileEditPage />} />
           <Route path="/profile/:id" element={<ProfilePage />} />
-          <Route path="/wallet" element={<WalletPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/smart-search" element={<SmartSearchPage />} />
           <Route path="/login" element={<LoginPage />} />
